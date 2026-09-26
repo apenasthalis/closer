@@ -1,0 +1,53 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: .docker/nginx/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - php
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - app
+
+  php:
+    build:
+      context: .
+      dockerfile: .docker/php/Dockerfile
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    expose:
+      - "9000"
+    networks:
+      app:
+        aliases:
+          - php
+  
+  postgres:
+    image: postgres:17
+    container_name: postgres-closer
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5433:5432"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - postgres_closer:/var/lib/postgresql/data
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
+
+volumes:
+  postgres_data:

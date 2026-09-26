@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Closer OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0e11; --sidebar:#0c0e11; --panel:#15181c; --panel2:#1b1f24; --line:#262b31;
+  --text:#f2f2f0; --muted:#888e96; --brand:#3fa373; --brand-soft:#12241c;
+  --c1:#3fa373; --c2:#4f8fd8; --c3:#9b7fd8; --c4:#d8a34f; --c5:#c76b7f;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:inherit; margin:0; padding:0;}
+html,body{height:100%; background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',Arial,sans-serif; font-size:14px; -webkit-font-smoothing:antialiased;}
+.app{display:flex; min-height:100%;}
+.sidebar{width:216px; flex-shrink:0; background:var(--sidebar); border-right:1px solid var(--line); padding:20px 14px; display:flex; flex-direction:column;}
+.logo{display:flex; align-items:center; gap:10px; padding:6px 6px 22px;}
+.logo-mark{width:30px; height:30px; border-radius:7px; background:var(--brand); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:#08120d;}
+.logo-name{font-size:14.5px; font-weight:600;}
+.logo-sub{font-size:10px; color:var(--muted); letter-spacing:.5px;}
+.nav{display:flex; flex-direction:column; gap:2px;}
+.nav-item{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:7px; color:var(--muted); font-size:13px; cursor:pointer;}
+.nav-item svg{width:16px; height:16px; flex-shrink:0;}
+.nav-item.active{background:var(--brand); color:#08120d; font-weight:600;}
+.nav-spacer{flex:1;}
+.user{display:flex; align-items:center; gap:9px; padding:10px 6px; border-top:1px solid var(--line); margin-top:8px;}
+.avatar{width:28px; height:28px; border-radius:50%; background:var(--panel2); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600;}
+.user .name{font-size:12px;} .user .mail{font-size:10.5px; color:var(--muted);}
+
+.main{flex:1; min-width:0;}
+.topbar{display:flex; justify-content:space-between; align-items:flex-start; padding:28px 32px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; gap:16px;}
+.topbar h1{font-size:26px; font-weight:700;}
+.topbar .sub{color:var(--muted); font-size:12.5px; margin-top:4px;}
+.topbar-actions{display:flex; gap:10px; align-items:center;}
+.pill{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:9px 14px; font-size:12.5px; color:var(--muted);}
+.pill.btn-refresh{background:var(--brand); color:#08120d; font-weight:600; border:none; cursor:pointer;}
+
+.content{padding:26px 32px 60px;}
+.view{display:none;}
+.view.active{display:block;}
+
+.kpi-row{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:22px;}
+.kpi{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 18px;}
+.kpi-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;}
+.kpi .label{font-size:10.5px; color:var(--muted); letter-spacing:.4px;}
+.icon-badge{width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center;}
+.icon-badge svg{width:14px; height:14px;}
+.kpi .value{font-size:22px; font-weight:700;}
+.kpi .cap{font-size:11px; color:var(--muted); margin-top:4px;}
+
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;}
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px;}
+.panel h3{font-size:14.5px; font-weight:600; margin-bottom:2px;}
+.panel .cap{font-size:11.5px; color:var(--muted); margin-bottom:18px;}
+
+.donut-wrap{display:flex; align-items:center; gap:26px;}
+.donut{width:130px; height:130px; border-radius:50%; flex-shrink:0; position:relative;}
+.donut::after{content:''; position:absolute; inset:20px; background:var(--panel); border-radius:50%;}
+.legend{flex:1; font-size:12px;}
+.legend-row{display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);}
+.legend-row:last-child{border-bottom:none;}
+.legend-row .k{display:flex; align-items:center; gap:8px; color:var(--muted);}
+.dot{width:7px; height:7px; border-radius:50%;}
+.legend-row .v{font-weight:600; font-variant-numeric:tabular-nums;}
+.legend-total{display:flex; justify-content:space-between; padding-top:10px; margin-top:4px; font-size:12px; color:var(--muted);}
+.legend-total b{color:var(--brand); font-size:13px;}
+
+.bar-list-row{display:grid; grid-template-columns:130px 1fr 70px; align-items:center; gap:12px; padding:8px 0;}
+.bar-track{height:8px; background:var(--panel2); border-radius:4px; overflow:hidden;}
+.bar-fill{height:100%; border-radius:4px;}
+.bar-list-row .name{font-size:12.5px; color:var(--muted);}
+.bar-list-row .n{text-align:right; font-size:12.5px; font-variant-numeric:tabular-nums;}
+
+/* Kanban */
+.kanban{display:grid; grid-template-columns:repeat(7,minmax(160px,1fr)); gap:12px; min-width:1180px;}
+.kcol{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px;}
+.kcol-head{display:flex; justify-content:space-between; font-size:11.5px; color:var(--muted); padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--line);}
+.kcol-head b{color:var(--text); font-weight:600;}
+.kcard{background:var(--panel2); border-radius:8px; padding:10px 12px; margin-bottom:8px;}
+.kcard .name{font-size:12.5px; margin-bottom:5px;}
+.kcard .niche{font-size:10.5px; color:var(--muted); margin-bottom:8px;}
+.kcard .foot{display:flex; justify-content:space-between; align-items:center; font-size:11.5px;}
+.temp{width:6px; height:6px; border-radius:50%; display:inline-block;}
+.temp.hot{background:var(--c5);} .temp.warm{background:var(--c4);} .temp.cold{background:var(--muted);}
+
+/* Lembretes */
+.rem-item{display:grid; grid-template-columns:60px 90px 1fr auto; align-items:center; gap:14px; padding:13px 16px; background:var(--panel); border:1px solid var(--line); border-radius:8px; margin-bottom:9px; font-size:13px;}
+.rem-time{color:var(--muted); font-variant-numeric:tabular-nums; font-size:12px;}
+.rem-time.late{color:var(--c5);}
+.badge{font-size:10.5px; padding:3px 9px; border-radius:5px; text-align:center; width:fit-content;}
+.b-follow{background:#132330; color:#7cb3e0;} .b-cobranca{background:#241b10; color:var(--c4);} .b-remarcar{background:#241429; color:#c78fdb;}
+.btn{background:none; border:1px solid var(--line); color:var(--muted); font-size:11px; padding:6px 12px; border-radius:6px; cursor:pointer;}
+
+@media (max-width:760px){
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+  .grid-2{grid-template-columns:1fr;}
+  .sidebar{width:60px; padding:16px 8px;}
+  .logo-name,.logo-sub,.nav-item span,.user .name,.user .mail{display:none;}
+  .content{padding:20px 16px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">CO</div>
+      <div><div class="logo-name">Closer OS</div><div class="logo-sub">CRM</div></div>
+    </div>
+    <div class="nav">
+      <div class="nav-item active" onclick="showView('overview',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg><span>Visão Geral</span></div>
+      <div class="nav-item" onclick="showView('kanban',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg><span>Pipeline</span></div>
+      <div class="nav-item" onclick="showView('dashboard',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><span>Dashboard</span></div>
+      <div class="nav-item" onclick="showView('lembretes',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Lembretes</span></div>
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="user">
+      <div class="avatar">T</div>
+      <div><div class="name">Thalis</div><div class="mail">Goiânia, GO</div></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="view-title">Visão Geral</h1>
+        <div class="sub">Métricas consolidadas de todos os leads e nichos que você atende.</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="pill">01/09/2026 — 30/09/2026</div>
+        <div class="pill">Período ▾</div>
+        <button class="pill btn-refresh">Atualizar</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="view active" id="overview">
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-top"><span class="label">FATURAMENTO</span><span class="icon-badge" style="background:var(--brand-soft);color:var(--c1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div><div class="value">R$ 34.028</div><div class="cap">61 venda(s) no período</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="label">TICKET MÉDIO</span><span class="icon-badge" style="background:#0f2233;color:var(--c2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/></svg></span></div><div class="value">R$ 4.850</div><div class="cap">Faturamento / vendas</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="label">COMISSÃO GERADA</span><span class="icon-badge" style="background:#1e1730;color:var(--c3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><path d="M2 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1"/></svg></span></div><div class="value">R$ 5.104</div><div class="cap">15% sobre fechamentos</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="label">LEADS NO PERÍODO</span><span class="icon-badge" style="background:#2a2010;color:var(--c4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg></span></div><div class="value">61</div><div class="cap">Leads com entrada no período</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="label">TAXA DE CONVERSÃO</span><span class="icon-badge" style="background:#2a1418;color:var(--c5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l16 16M8 4H4v4M20 16v4h-4"/></svg></span></div><div class="value">31,1%</div><div class="cap">Fechamentos / leads</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Faturamento por Nicho</h3>
+            <div class="cap">Receita total gerada no período.</div>
+            <div class="donut-wrap">
+              <div class="donut" style="background:conic-gradient(var(--c1) 0 62%, var(--c2) 62% 78%, var(--c3) 78% 90%, var(--c4) 90% 100%)"></div>
+              <div class="legend">
+                <div class="legend-row"><span class="k"><span class="dot" style="background:var(--c1)"></span>Mercado Livre</span><span class="v">R$ 21.100</span></div>
+                <div class="legend-row"><span class="k"><span class="dot" style="background:var(--c2)"></span>Mente Renovada</span><span class="v">R$ 5.400</span></div>
+                <div class="legend-row"><span class="k"><span class="dot" style="background:var(--c3)"></span>Visagismo</span><span class="v">R$ 4.100</span></div>
+                <div class="legend-row"><span class="k"><span class="dot" style="background:var(--c4)"></span>Construção civil</span><span class="v">R$ 3.428</span></div>
+                <div class="legend-total">TOTAL<b>R$ 34.028</b></div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Leads por Nicho</h3>
+            <div class="cap">Volume de leads que entraram no funil.</div>
+            <div class="donut-wrap">
+              <div class="donut" style="background:conic-gradient(var(--c2) 0 45%, var(--c1) 45% 72%, var(--c4) 72% 90%, var(--c5) 90% 100%)"></div>
+              <div class="legend">
+                <div class="legend-row"><span class="k"><span class="dot" style="background:var(--c2)"></span>Mercado Livre</span><span class="v">27</span></div>
+                <div class="legend-row"><span class="k"><span class="dot" style="background:var(--c1)"></span>Mente Renovada</span><span class="v">17</span></div>
+                <div class="legend-row"><span class="k"><span class="dot" style="background:var(--c4)"></span>Visagismo</span><span class="v">11</span></div>
+                <div class="legend-row"><span class="k"><span class="dot" style="background:var(--c5)"></span>Construção civil</span><span class="v">6</span></div>
+                <div class="legend-total">TOTAL<b>61</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Pipeline por Etapa</h3>
+          <div class="cap">Distribuição atual dos leads no funil.</div>
+          <div class="bar-list-row"><span class="name">Lead Agendado</span><div class="bar-track"><div class="bar-fill" style="width:70%;background:var(--c2)"></div></div><span class="n">9</span></div>
+          <div class="bar-list-row"><span class="name">FUP</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--c1)"></div></div><span class="n">14</span></div>
+          <div class="bar-list-row"><span class="name">Remarcado</span><div class="bar-track"><div class="bar-fill" style="width:36%;background:var(--c3)"></div></div><span class="n">5</span></div>
+          <div class="bar-list-row"><span class="name">Negociação</span><div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--c4)"></div></div><span class="n">7</span></div>
+          <div class="bar-list-row"><span class="name">Fechado</span><div class="bar-track"><div class="bar-fill" style="width:79%;background:var(--brand)"></div></div><span class="n">11</span></div>
+          <div class="bar-list-row"><span class="name">Loss</span><div class="bar-track"><div class="bar-fill" style="width:57%;background:var(--c5)"></div></div><span class="n">8</span></div>
+          <div class="bar-list-row"><span class="name">Mal Qualificado</span><div class="bar-track"><div class="bar-fill" style="width:29%;background:var(--muted)"></div></div><span class="n">4</span></div>
+        </div>
+      </div>
+
+      <div class="view" id="kanban">
+        <div class="kanban">
+          <div class="kcol"><div class="kcol-head"><b>Lead Agendado</b><span>9</span></div>
+            <div class="kcard"><div class="name">Marcos Vinícius</div><div class="niche">Mercado Livre</div><div class="foot"><span>R$ 3.200</span><span class="temp warm"></span></div></div>
+            <div class="kcard"><div class="name">Regiane Alves</div><div class="niche">Visagismo</div><div class="foot"><span>R$ 2.900</span><span class="temp cold"></span></div></div>
+          </div>
+          <div class="kcol"><div class="kcol-head"><b>FUP</b><span>14</span></div>
+            <div class="kcard"><div class="name">Fábio Nogueira</div><div class="niche">Mente Renovada</div><div class="foot"><span>R$ 5.500</span><span class="temp hot"></span></div></div>
+            <div class="kcard"><div class="name">Juliana Prado</div><div class="niche">Mercado Livre</div><div class="foot"><span>R$ 4.100</span><span class="temp warm"></span></div></div>
+          </div>
+          <div class="kcol"><div class="kcol-head"><b>Remarcado</b><span>5</span></div>
+            <div class="kcard"><div class="name">Patrícia Souza</div><div class="niche">Visagismo</div><div class="foot"><span>R$ 2.700</span><span class="temp cold"></span></div></div>
+          </div>
+          <div class="kcol"><div class="kcol-head"><b>Negociação</b><span>7</span></div>
+            <div class="kcard"><div class="name">Renata Lima</div><div class="niche">Visagismo</div><div class="foot"><span>R$ 3.800</span><span class="temp hot"></span></div></div>
+            <div class="kcard"><div class="name">Carlos Eduardo</div><div class="niche">Construção civil</div><div class="foot"><span>R$ 2.500</span><span class="temp warm"></span></div></div>
+          </div>
+          <div class="kcol"><div class="kcol-head"><b>Fechado</b><span>11</span></div>
+            <div class="kcard"><div class="name">André Bittencourt</div><div class="niche">Mercado Livre</div><div class="foot"><span>R$ 5.000</span><span class="temp hot"></span></div></div>
+          </div>
+          <div class="kcol"><div class="kcol-head"><b>Loss</b><span>8</span></div>
+            <div class="kcard"><div class="name">Vinícius Torres</div><div class="niche">Mercado Livre</div><div class="foot"><span>R$ 3.100</span><span class="temp cold"></span></div></div>
+          </div>
+          <div class="kcol"><div class="kcol-head"><b>Mal Qualificado</b><span>4</span></div>
+            <div class="kcard"><div class="name">Eliane Ramos</div><div class="niche">Visagismo</div><div class="foot"><span>—</span><span class="temp cold"></span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="dashboard">
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-top"><span class="label">REUNIÕES</span></div><div class="value">18</div><div class="cap">+3 vs. sem. anterior</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="label">CONVERSÃO</span></div><div class="value">38,9%</div><div class="cap">+4,2pp</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="label">TICKET MÉDIO</span></div><div class="value">R$ 4.850</div><div class="cap">-6% vs. mês</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="label">FATURAMENTO</span></div><div class="value">R$ 34,0k</div><div class="cap">+12%</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="label">NO-SHOW</span></div><div class="value">11%</div><div class="cap">-2pp</div></div>
+        </div>
+        <div class="panel">
+          <h3>Funil da semana</h3>
+          <div class="bar-list-row"><span class="name">Lead Agendado</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--c2)"></div></div><span class="n">42</span></div>
+          <div class="bar-list-row"><span class="name">FUP</span><div class="bar-track"><div class="bar-fill" style="width:64%;background:var(--c1)"></div></div><span class="n">27</span></div>
+          <div class="bar-list-row"><span class="name">Remarcado</span><div class="bar-track"><div class="bar-fill" style="width:26%;background:var(--c3)"></div></div><span class="n">11</span></div>
+          <div class="bar-list-row"><span class="name">Negociação</span><div class="bar-track"><div class="bar-fill" style="width:33%;background:var(--c4)"></div></div><span class="n">14</span></div>
+          <div class="bar-list-row"><span class="name">Fechado</span><div class="bar-track"><div class="bar-fill" style="width:17%;background:var(--brand)"></div></div><span class="n">7</span></div>
+        </div>
+      </div>
+
+      <div class="view" id="lembretes">
+        <div class="rem-item"><div class="rem-time late">09:00</div><span class="badge b-cobranca">Cobrança</span><div>Carlos Eduardo — restante de R$ 1.250 (PRD01)</div><button class="btn">Marcar feito</button></div>
+        <div class="rem-item"><div class="rem-time late">10:30</div><span class="badge b-follow">Follow-up</span><div>Marcos Vinícius — retomar diagnóstico após silêncio de 3 dias</div><button class="btn">Marcar feito</button></div>
+        <div class="rem-item"><div class="rem-time">14:00</div><span class="badge b-remarcar">Remarcar</span><div>Regiane Alves — no-show na call de ontem</div><button class="btn">Marcar feito</button></div>
+        <div class="rem-item"><div class="rem-time">16:15</div><span class="badge b-follow">Follow-up</span><div>Fábio Nogueira — enviar proposta revisada (Mente Renovada)</div><button class="btn">Marcar feito</button></div>
+        <div class="rem-item"><div class="rem-time">18:00</div><span class="badge b-cobranca">Cobrança</span><div>Juliana Prado — 2ª parcela vence hoje</div><button class="btn">Marcar feito</button></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function showView(id, el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('view-title').textContent = el.querySelector('span').textContent;
+}
+</script>
+</body>
+</html>
