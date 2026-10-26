@@ -108,11 +108,16 @@ MAIL_FROM_ADDRESS="hello@closer.local"
 MAIL_FROM_NAME="\${APP_NAME}"
 JWT_SECRET=${jwt_secret}
 JWT_TTL=1440
-DEMO_ADMIN_PASSWORD=\${DEMO_ADMIN_PASSWORD:-Closer@2026!}
+DEMO_ADMIN_PASSWORD=${DEMO_ADMIN_PASSWORD:-Closer@2026!}
 DOCKER_CONTROL_URL=http://docker-control:8099
 DOCKER_CONTROL_TOKEN=${DOCKER_CONTROL_TOKEN}
 ENV
-    chmod 600 "$BACKEND_ENV"
+    if [ "$(id -u)" = "0" ]; then
+      chown 33:33 "$BACKEND_ENV"
+      chmod 600 "$BACKEND_ENV"
+    else
+      chmod 644 "$BACKEND_ENV"
+    fi
   fi
 
   env_has "$BACKEND_ENV" DOCKER_CONTROL_URL || printf '\nDOCKER_CONTROL_URL=http://docker-control:8099\n' >> "$BACKEND_ENV"
