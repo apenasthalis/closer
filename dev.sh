@@ -9,7 +9,6 @@ BACKEND_ENV="$ROOT/backend/.env"
 DB_CONTAINER="postgres-closer"
 PHP_CONTAINER="closer-php-1"
 NGINX_CONTAINER="closer-nginx-1"
-FRONTEND_CONTAINER="closer-frontend-1"
 AGENT_CONTAINER="closer-docker-control-1"
 
 log()  { printf '\033[1;32m[closer]\033[0m %s\n' "$*"; }
@@ -86,7 +85,7 @@ APP_NAME="Closer OS"
 APP_ENV=${APP_ENV:-local}
 APP_KEY=${app_key}
 APP_DEBUG=true
-APP_URL=https://localhost:8453
+APP_URL=https://localhost:443
 APP_LOCALE=pt_BR
 APP_FALLBACK_LOCALE=en
 APP_FAKER_LOCALE=pt_BR
@@ -188,7 +187,7 @@ wait_http() {
 print_status() {
   printf '\n%-26s %-10s %s\n' "CONTAINER" "ESTADO" "SAÚDE"
   local name state health
-  for name in "$DB_CONTAINER" "$PHP_CONTAINER" "$NGINX_CONTAINER" "$FRONTEND_CONTAINER" "$AGENT_CONTAINER"; do
+  for name in "$DB_CONTAINER" "$PHP_CONTAINER" "$NGINX_CONTAINER" "$AGENT_CONTAINER"; do
     if container_exists "$name"; then
       state="$(docker inspect -f '{{.State.Status}}' "$name" 2>/dev/null || echo unknown)"
       health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}-{{end}}' "$name" 2>/dev/null || echo -)"
@@ -198,9 +197,9 @@ print_status() {
     fi
     printf '%-26s %-10s %s\n' "$name" "$state" "$health"
   done
-  printf '\nFrontend:  http://localhost:5173\n'
-  printf 'API:       https://localhost:8453/api/v1/health\n'
-  printf 'HTTP:      http://localhost:8090 (redireciona para HTTPS)\n'
+  printf '\nApp + API: https://localhost:443\n'
+  printf 'API:       https://localhost:443/api/v1/health\n'
+  printf 'HTTP:      http://localhost:80 (redireciona para HTTPS)\n'
 }
 
 up() {
@@ -216,9 +215,6 @@ up() {
 
   ensure_service nginx "$NGINX_CONTAINER"
   wait_container "$NGINX_CONTAINER" 45 || fail "Nginx não ficou ativo."
-
-  ensure_service frontend "$FRONTEND_CONTAINER"
-  wait_container "$FRONTEND_CONTAINER" 45 || fail "Frontend não ficou ativo."
 
   ensure_service docker-control "$AGENT_CONTAINER"
   wait_container "$AGENT_CONTAINER" 45 || fail "Agente Docker não ficou ativo."
@@ -240,8 +236,8 @@ up() {
     fi
   fi
 
-  wait_http "Frontend respondendo." "http://localhost:5173/" 60 || fail "Frontend não respondeu a tempo."
-  wait_http "API respondendo via HTTPS." "https://localhost:8453/api/v1/health" 60 || fail "API não respondeu a tempo."
+  wait_http "Nginx respondendo." "http://localhost:80/" 60 || fail "Nginx não respondeu a tempo."
+  wait_http "API respondendo via HTTPS." "https://localhost:443/api/v1/health" 60 || fail "API não respondeu a tempo."
 
   log "Ambiente pronto. Containers existentes foram preservados."
   print_status
