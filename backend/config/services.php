@@ -35,4 +35,26 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'calendar_id' => env('GOOGLE_CALENDAR_ID', 'primary'),
+    ],
+
+    'whatsapp' => [
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
+    ],
+
+    'ai' => [
+        'api_key' => env('AI_API_KEY'),
+        'driver' => env('AI_DRIVER', 'local-heuristic'),
+    ],
+
+    'docker_control' => [
+        'url' => env('DOCKER_CONTROL_URL'),
+        'token' => env('DOCKER_CONTROL_TOKEN'),
+    ],
+
 ];

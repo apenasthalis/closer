@@ -1,0 +1,13 @@
+.env
+.env.local
+.env.*.local
+!.env.example
+
+node_modules/
+frontend/dist/
+frontend/.vite/
+backend/vendor/
+backend/storage/logs/*.log
+backend/.phpunit.result.cache
+*.log
+.DS_Store

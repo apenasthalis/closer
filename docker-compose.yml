@@ -1,0 +1,109 @@
+name: closer
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres-closer
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-closer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-closer_dev_pw}
+      POSTGRES_DB: ${POSTGRES_DB:-closer}
+    ports:
+      - "5434:5432"
+    volumes:
+      - closer_pgdata:/var/lib/postgresql/data
+    networks:
+      app:
+        aliases:
+          - postgres
+
+  php:
+    build:
+      context: ./backend
+      dockerfile: .docker/php/Dockerfile
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-closer}
+      DB_USERNAME: ${POSTGRES_USER:-closer}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-closer_dev_pw}
+      DOCKER_CONTROL_URL: http://docker-control:8099
+      DOCKER_CONTROL_TOKEN: ${DOCKER_CONTROL_TOKEN:-closer-local-docker-token}
+    volumes:
+      - ./backend:/var/www/html
+    expose:
+      - "9000"
+    depends_on:
+      - postgres
+    networks:
+      app:
+        aliases:
+          - php
+
+  nginx:
+    build:
+      context: ./backend
+      dockerfile: .docker/nginx/Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./backend:/var/www/html
+    ports:
+      - "8090:80"
+      - "8453:443"
+    depends_on:
+      - php
+    networks:
+      app:
+        aliases:
+          - nginx
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      VITE_API_PROXY_TARGET: https://nginx
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - nginx
+    networks:
+      app:
+        aliases:
+          - frontend
+
+  docker-control:
+    build:
+      context: ./ops/docker-control
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DOCKER_CONTROL_TOKEN: ${DOCKER_CONTROL_TOKEN:-closer-local-docker-token}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    expose:
+      - "8099"
+    networks:
+      app:
+        aliases:
+          - docker-control
+
+volumes:
+  closer_pgdata:
+    name: closer_closer_pgdata
+  frontend_node_modules:
+    name: closer_frontend_node_modules
+
+networks:
+  app:
+    name: closer_app
+    driver: bridge

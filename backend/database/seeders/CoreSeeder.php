@@ -1,0 +1,105 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\CommissionRule;
+use App\Models\IntegrationSetting;
+use App\Models\Niche;
+use App\Models\Playbook;
+use App\Models\Team;
+use App\Models\User;
+use App\Services\CallAnalysisService;
+use Illuminate\Database\Seeder;
+
+class CoreSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $team = Team::query()->firstOrCreate(
+            ['slug' => 'comercial'],
+            ['name' => 'Comercial', 'description' => 'Time comercial principal', 'active' => true]
+        );
+
+        foreach (User::query()->whereNull('team_id')->get() as $user) {
+            $user->forceFill(['team_id' => $team->getKey()])->save();
+        }
+
+        $admin = User::query()->where('email', 'admin@closer.local')->first();
+
+        if (! $admin) {
+            $admin = User::query()->create([
+                'name' => 'Admin Closer OS',
+                'email' => 'admin@closer.local',
+                'password' => env('DEMO_ADMIN_PASSWORD', 'Closer@2026!'),
+                'role' => User::ROLE_ADMIN,
+                'active' => true,
+                'phone' => null,
+                'avatar_color' => '#3fa373',
+                'team_id' => $team->getKey(),
+                'email_verified_at' => now(),
+            ]);
+        }
+
+        if (! User::query()->where('role', User::ROLE_ADMIN)->where('active', true)->exists()) {
+            $thalis = User::query()->where('email', 'thalis@closer.local')->first();
+            $thalis?->forceFill(['role' => User::ROLE_ADMIN, 'team_id' => $team->getKey()])->save();
+        }
+
+        if (! User::query()->where('role', User::ROLE_MANAGER)->exists()) {
+            User::query()->where('email', 'bruna@closer.local')->first()
+                ?->forceFill(['role' => User::ROLE_MANAGER, 'team_id' => $team->getKey()])->save();
+        }
+
+        if (! User::query()->where('role', User::ROLE_SDR)->exists()) {
+            User::query()->where('email', 'leticia@closer.local')->first()
+                ?->forceFill(['role' => User::ROLE_SDR, 'team_id' => $team->getKey()])->save();
+        }
+
+        foreach (User::query()->whereNull('avatar_color')->get() as $index => $user) {
+            $user->forceFill(['avatar_color' => ['#3fa373', '#4f8fd8', '#9b7fd8', '#d8a34f', '#c76b7f'][$index % 5]])->save();
+        }
+
+        $niches = [
+            ['slug' => 'mercado_livre', 'name' => 'Mercado Livre', 'color' => '#7cb3e0', 'description' => 'Operação de e-commerce e marketplace.'],
+            ['slug' => 'mente_renovada', 'name' => 'Mente Renovada', 'color' => '#9b7fd8', 'description' => 'Saúde, bem-estar e desenvolvimento pessoal.'],
+            ['slug' => 'visagismo', 'name' => 'Visagismo', 'color' => '#d8a34f', 'description' => 'Beleza, imagem e consultoria de estilo.'],
+            ['slug' => 'construcao_civil', 'name' => 'Construção Civil', 'color' => '#c76b7f', 'description' => 'Obras, reformas e serviços técnicos.'],
+        ];
+
+        foreach ($niches as $niche) {
+            Niche::query()->firstOrCreate(['slug' => $niche['slug']], $niche + ['active' => true]);
+        }
+
+        if (! CommissionRule::query()->where('active', true)->exists()) {
+            CommissionRule::query()->create([
+                'name' => 'Comissão padrão',
+                'scope' => 'global',
+                'percentage' => 10,
+                'fixed_amount' => null,
+                'basis' => 'contracted',
+                'active' => true,
+                'priority' => 0,
+                'created_by' => $admin->getKey(),
+            ]);
+        }
+
+        if (! Playbook::query()->where('active', true)->exists()) {
+            Playbook::query()->create([
+                'niche_id' => null,
+                'name' => 'Playbook consultivo padrão',
+                'description' => 'Critérios heurísticos para calls de diagnóstico e fechamento.',
+                'criteria' => CallAnalysisService::DEFAULT_CRITERIA,
+                'version' => 1,
+                'active' => true,
+                'created_by' => $admin->getKey(),
+            ]);
+        }
+
+        foreach (['google_calendar', 'whatsapp_cloud', 'ai', 'smtp'] as $provider) {
+            IntegrationSetting::query()->firstOrCreate(
+                ['provider' => $provider],
+                ['enabled' => false, 'status' => 'not_configured', 'config' => []]
+            );
+        }
+    }
+}
