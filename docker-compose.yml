@@ -52,8 +52,8 @@ services:
     volumes:
       - ./backend:/var/www/html
     ports:
-      - "80:80"
-      - "443:443"
+      - "8090:80"
+      - "8453:443"
     depends_on:
       - php
     networks:

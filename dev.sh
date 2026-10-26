@@ -85,7 +85,7 @@ APP_NAME="Closer OS"
 APP_ENV=${APP_ENV:-local}
 APP_KEY=${app_key}
 APP_DEBUG=true
-APP_URL=https://localhost:443
+APP_URL=https://localhost:8453
 APP_LOCALE=pt_BR
 APP_FALLBACK_LOCALE=en
 APP_FAKER_LOCALE=pt_BR
@@ -197,9 +197,9 @@ print_status() {
     fi
     printf '%-26s %-10s %s\n' "$name" "$state" "$health"
   done
-  printf '\nApp + API: https://localhost:443\n'
-  printf 'API:       https://localhost:443/api/v1/health\n'
-  printf 'HTTP:      http://localhost:80 (redireciona para HTTPS)\n'
+  printf '\nApp + API: https://localhost:8453\n'
+  printf 'API:       https://localhost:8453/api/v1/health\n'
+  printf 'HTTP:      http://localhost:8090 (redireciona para HTTPS)\n'
 }
 
 up() {
@@ -236,8 +236,8 @@ up() {
     fi
   fi
 
-  wait_http "Nginx respondendo." "http://localhost:80/" 60 || fail "Nginx não respondeu a tempo."
-  wait_http "API respondendo via HTTPS." "https://localhost:443/api/v1/health" 60 || fail "API não respondeu a tempo."
+  wait_http "Nginx respondendo." "http://localhost:8090/" 60 || fail "Nginx não respondeu a tempo."
+  wait_http "API respondendo via HTTPS." "https://localhost:8453/api/v1/health" 60 || fail "API não respondeu a tempo."
 
   log "Ambiente pronto. Containers existentes foram preservados."
   print_status
