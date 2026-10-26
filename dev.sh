@@ -83,7 +83,7 @@ ensure_backend_env() {
     jwt_secret="$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
     cat > "$BACKEND_ENV" <<ENV
 APP_NAME="Closer OS"
-APP_ENV=local
+APP_ENV=${APP_ENV:-local}
 APP_KEY=${app_key}
 APP_DEBUG=true
 APP_URL=https://localhost:8453
