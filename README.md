@@ -30,19 +30,24 @@ O comando é idempotente:
 
 ### URLs
 
-- Frontend: <http://localhost:5173>
-- API/HTTPS: <https://localhost:8453/api/v1/health>
+- Produção: <https://tag-programming.com.br> (frontend e API no mesmo domínio)
+- API/HTTPS: <https://tag-programming.com.br/api/v1/health>
 - Nginx HTTP (redireciona para HTTPS): <http://localhost:8090>
+- Nginx HTTPS direto: <https://localhost:8453/api/v1/health>
 - PostgreSQL no host: `localhost:5434`
 
-O certificado é self-signed; o aviso do navegador é esperado em desenvolvimento.
+O nginx serve a SPA buildada e encaminha `/api` para o PHP-FPM na porta 9000.
+Em produção o TLS é Let's Encrypt (`tag-programming.com.br` e `www`); o certificado
+self-signed serve apenas para o acesso direto na porta 8453.
 
-### Acesso demo
+### Acesso
 
 - E-mail: `admin@closer.local`
 - Senha padrão: `Closer@2026!` (configurável por `DEMO_ADMIN_PASSWORD` antes do seed)
 
-Os demais usuários de demonstração foram preservados do banco original e podem ter senhas próprias.
+Em produção o banco contém apenas o admin: o `DemoDataSeeder` roda somente no
+ambiente `local`, então leads, scripts, objeções, comissões e demais dados de
+exemplo não são carregados. Os dados são inseridos manualmente.
 
 ## Comandos
 
@@ -63,13 +68,28 @@ O frontend roda em Node 22 dentro do container. Use os comandos acima para evita
 
 | Serviço | Container | Porta no host | Observação |
 |---|---|---|---|
-| Frontend (Vite) | `closer-frontend-1` | `5173` | proxy `/api` para o Nginx |
-| Nginx | `closer-nginx-1` | `8090` HTTP, `8453` HTTPS | TLS self-signed |
-| PHP-FPM | `closer-php-1` | interna `9000` | Laravel |
+| Nginx | `closer-nginx-1` | `8090` HTTP, `8453` HTTPS | serve a SPA e encaminha `/api` ao PHP-FPM |
+| PHP-FPM | `closer-php-1` | interna `9000` | Laravel (API) |
 | PostgreSQL | `postgres-closer` | `5434` | volume `closer_closer_pgdata` |
 | Agente Docker | `closer-docker-control-1` | interna `8099` | allowlist e token |
 
+O frontend é publicado apenas pelo nginx: não há container de dev do Vite na stack.
+
 O Compose usa a rede `closer_app` e preserva os nomes de volume existentes.
+
+## Produção na VPS
+
+- Domínio: `tag-programming.com.br` (DNS `ns1.dns-parking.com` / `ns2.dns-parking.com`).
+- As portas 80 e 443 da VPS são do ingress compartilhado; o nginx do Closer publica
+  8090/8453 e o ingress encaminha `tag-programming.com.br` para `8453`.
+- O `.env` do backend precisa ser legível pelo PHP-FPM (`chown 33:33` e `chmod 600`).
+- Para publicar mudanças do frontend: build local e cópia dos assets.
+
+```bash
+cd frontend && npx vite build --outDir /tmp/closer-dist --emptyOutDir
+scp -r /tmp/closer-dist/* ubuntu@<vps>:/tmp/closer-dist
+scp -r /tmp/closer-dist/* ubuntu@<vps>:/opt/sources/closer/backend/public/
+```
 
 ## Autenticação e segurança
 
