@@ -9,9 +9,10 @@ export function DashboardPage() {
   const [from, setFrom] = useState(startOfMonth())
   const [to, setTo] = useState(endOfMonth())
   const [nicheId, setNicheId] = useState('')
+  const [companyId, setCompanyId] = useState('')
   const [closerId, setCloserId] = useState('')
-  const { niches, users } = useLookups()
-  const params = { from: from || undefined, to: to || undefined, niche_id: nicheId || undefined, closer_id: closerId || undefined }
+  const { niches, users, companies } = useLookups()
+  const params = { from: from || undefined, to: to || undefined, niche_id: nicheId || undefined, company_id: companyId || undefined, closer_id: closerId || undefined }
   const { data, loading, error, reload } = useApi<{ data: Dashboard }>('/dashboard', params)
   const { data: lossData } = useApi<{ data: LossAnalysis }>('/dashboard/losses', params)
   const dashboard = data?.data
@@ -37,6 +38,10 @@ export function DashboardPage() {
           <Select value={nicheId} onChange={(event) => setNicheId(event.target.value)} style={{ width: 155 }}>
             <option value="">Todos os nichos</option>
             {niches.map((niche) => <option key={niche.id} value={niche.id}>{niche.name}</option>)}
+          </Select>
+          <Select value={companyId} onChange={(event) => setCompanyId(event.target.value)} style={{ width: 155 }}>
+            <option value="">Todas as empresas</option>
+            {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
           </Select>
           <Select value={closerId} onChange={(event) => setCloserId(event.target.value)} style={{ width: 155 }}>
             <option value="">Todos os closers</option>

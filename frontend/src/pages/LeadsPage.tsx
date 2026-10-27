@@ -19,11 +19,12 @@ const stageTone: Record<string, string> = {
 
 export function LeadsPage() {
   const navigate = useNavigate()
-  const { niches, users } = useLookups()
+  const { niches, users, companies } = useLookups()
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounced(search)
   const [stage, setStage] = useState('')
   const [nicheId, setNicheId] = useState('')
+  const [companyId, setCompanyId] = useState('')
   const [temperature, setTemperature] = useState('')
   const [closerId, setCloserId] = useState('')
   const [sort, setSort] = useState('recent')
@@ -34,6 +35,7 @@ export function LeadsPage() {
     q: debouncedSearch || undefined,
     stage: stage || undefined,
     niche_id: nicheId || undefined,
+    company_id: companyId || undefined,
     temperature: temperature || undefined,
     closer_id: closerId || undefined,
     sort,
@@ -46,6 +48,7 @@ export function LeadsPage() {
     setSearch('')
     setStage('')
     setNicheId('')
+    setCompanyId('')
     setTemperature('')
     setCloserId('')
     setSort('recent')
@@ -65,6 +68,10 @@ export function LeadsPage() {
             <option value="">Todos os nichos</option>
             {niches.map((niche) => <option key={niche.id} value={niche.id}>{niche.name}</option>)}
           </Select>
+          <Select value={companyId} onChange={(event) => { setCompanyId(event.target.value); setPage(1) }} style={{ width: 155 }}>
+            <option value="">Todas as empresas</option>
+            {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+          </Select>
           <Select value={temperature} onChange={(event) => { setTemperature(event.target.value); setPage(1) }} style={{ width: 125 }}>
             <option value="">Temperatura</option>
             <option value="hot">Quente</option>
@@ -83,7 +90,7 @@ export function LeadsPage() {
           </Select>
         </div>
         <div className="page-toolbar-right">
-          {search || stage || nicheId || temperature || closerId ? <Button variant="ghost" size="sm" onClick={clearFilters}>Limpar filtros</Button> : null}
+          {search || stage || nicheId || companyId || temperature || closerId ? <Button variant="ghost" size="sm" onClick={clearFilters}>Limpar filtros</Button> : null}
           <Button variant="primary" icon="plus" onClick={() => setNewLead(true)}>Novo lead</Button>
         </div>
       </div>
@@ -100,6 +107,7 @@ export function LeadsPage() {
                 <tr>
                   <th>Lead</th>
                   <th>Nicho</th>
+                  <th>Empresa</th>
                   <th>Etapa</th>
                   <th>Temperatura</th>
                   <th>Closer</th>
@@ -116,6 +124,7 @@ export function LeadsPage() {
                       <div className="cell-sub">{lead.company || lead.email || lead.phone || 'Sem empresa'}</div>
                     </td>
                     <td>{lead.niche ? <span><span className="niche-dot" style={{ background: lead.niche.color || 'var(--brand)' }} />{lead.niche.name}</span> : <span className="muted">—</span>}</td>
+                    <td>{lead.company_id ? <span className="text-sm muted">{lead.company || '—'}</span> : <span className="muted">—</span>}</td>
                     <td><Badge tone={stageTone[lead.stage] || 'neutral'}>{STAGE_LABELS[lead.stage] || lead.stage}</Badge></td>
                     <td><span className="stage-chip" style={{ '--chip-color': lead.temperature === 'hot' ? 'var(--c5)' : lead.temperature === 'warm' ? 'var(--c4)' : 'var(--muted)' } as React.CSSProperties}>{TEMPERATURE_LABELS[lead.temperature] || lead.temperature}</span></td>
                     <td>{lead.closer?.name || <span className="muted">—</span>}</td>

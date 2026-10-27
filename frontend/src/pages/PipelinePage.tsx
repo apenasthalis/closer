@@ -29,12 +29,13 @@ interface PendingMove {
 export function PipelinePage() {
   const navigate = useNavigate()
   const { notify } = useToast()
-  const { niches, users } = useLookups()
+  const { niches, users, companies } = useLookups()
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounced(search)
   const [from, setFrom] = useState(startOfMonth())
   const [to, setTo] = useState(endOfMonth())
   const [nicheId, setNicheId] = useState('')
+  const [companyId, setCompanyId] = useState('')
   const [closerId, setCloserId] = useState('')
   const [dragLead, setDragLead] = useState<Lead | null>(null)
   const [dragOver, setDragOver] = useState('')
@@ -47,6 +48,7 @@ export function PipelinePage() {
   const { data, loading, error, reload, setData } = useApi<KanbanResponse>('/leads/kanban', {
     q: debouncedSearch || undefined,
     niche_id: nicheId || undefined,
+    company_id: companyId || undefined,
     closer_id: closerId || undefined,
     from: from || undefined,
     to: to || undefined,
@@ -157,6 +159,10 @@ export function PipelinePage() {
           <Select value={nicheId} onChange={(event) => setNicheId(event.target.value)} style={{ width: 165 }}>
             <option value="">Todos os nichos</option>
             {niches.map((niche) => <option key={niche.id} value={niche.id}>{niche.name}</option>)}
+          </Select>
+          <Select value={companyId} onChange={(event) => setCompanyId(event.target.value)} style={{ width: 165 }}>
+            <option value="">Todas as empresas</option>
+            {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
           </Select>
           <Select value={closerId} onChange={(event) => setCloserId(event.target.value)} style={{ width: 165 }}>
             <option value="">Todos os closers</option>

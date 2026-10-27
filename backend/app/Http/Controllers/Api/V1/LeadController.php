@@ -29,6 +29,7 @@ class LeadController extends Controller
             'niche_id' => ['nullable', 'uuid'],
             'closer_id' => ['nullable', 'integer'],
             'pre_sales_id' => ['nullable', 'integer'],
+            'company_id' => ['nullable', 'uuid'],
             'temperature' => ['nullable', 'in:cold,warm,hot'],
             'priority' => ['nullable', 'integer', 'min:0', 'max:10'],
             'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
@@ -37,7 +38,7 @@ class LeadController extends Controller
 
         $query = Lead::query()
             ->visibleTo($request->user())
-            ->with(['niche:id,name,color', 'closer:id,name', 'preSales:id,name'])
+            ->with(['niche:id,name,color', 'closer:id,name', 'preSales:id:name'])
             ->when($filters['q'] ?? null, function ($builder, $term) {
                 $like = '%'.mb_strtolower($term).'%';
                 $builder->where(function ($inner) use ($like) {
@@ -51,6 +52,7 @@ class LeadController extends Controller
             ->when($filters['niche_id'] ?? null, fn ($builder, $niche) => $builder->where('niche_id', $niche))
             ->when($filters['closer_id'] ?? null, fn ($builder, $closer) => $builder->where('closer_id', $closer))
             ->when($filters['pre_sales_id'] ?? null, fn ($builder, $sdr) => $builder->where('pre_sales_id', $sdr))
+            ->when($filters['company_id'] ?? null, fn ($builder, $company) => $builder->where('company_id', $company))
             ->when($filters['temperature'] ?? null, fn ($builder, $temperature) => $builder->where('temperature', $temperature))
             ->when($filters['priority'] ?? null, fn ($builder, $priority) => $builder->where('priority', '>=', $priority));
 
@@ -72,14 +74,16 @@ class LeadController extends Controller
             'q' => ['nullable', 'string', 'max:120'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
+            'company_id' => ['nullable', 'uuid'],
         ]);
 
         $query = Lead::query()
             ->visibleTo($request->user())
-            ->with(['niche:id,name,color', 'closer:id,name', 'preSales:id,name'])
+            ->with(['niche:id,name,color', 'closer:id,name', 'preSales:id:name'])
             ->when($filters['from'] ?? null, fn ($builder, $from) => $builder->whereDate('created_at', '>=', $from))
             ->when($filters['to'] ?? null, fn ($builder, $to) => $builder->whereDate('created_at', '<=', $to))
             ->when($filters['niche_id'] ?? null, fn ($builder, $niche) => $builder->where('niche_id', $niche))
+            ->when($filters['company_id'] ?? null, fn ($builder, $company) => $builder->where('company_id', $company))
             ->when($filters['closer_id'] ?? null, fn ($builder, $closer) => $builder->where('closer_id', $closer))
             ->when($filters['q'] ?? null, fn ($builder, $term) => $builder->where(function ($inner) use ($term) {
                 $like = '%'.mb_strtolower($term).'%';

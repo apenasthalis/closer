@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Company;
 
 class Lead extends Model
 {
@@ -40,7 +41,7 @@ class Lead extends Model
         'ticket_estimado', 'valor_negociado', 'ticket_fechado', 'receita_prevista',
         'first_contact_at', 'last_interaction_at', 'next_action_at', 'meeting_at', 'last_stage_change_at',
         'next_steps', 'loss_reason', 'disqualify_reason', 'call_id', 'saldo_devedor',
-        'parcelas', 'custom_fields', 'notes', 'commission_percentage', 'commission_amount',
+        'parcelas', 'custom_fields', 'notes', 'commission_percentage', 'commission_amount', 'company_id',
     ];
 
     protected function casts(): array
@@ -79,6 +80,11 @@ class Lead extends Model
     public function preSales(): BelongsTo
     {
         return $this->belongsTo(User::class, 'pre_sales_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function interactions(): HasMany

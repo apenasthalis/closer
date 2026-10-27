@@ -56,6 +56,7 @@ class LeadService
                 'next_steps' => $data['next_steps'] ?? null,
                 'notes' => $data['notes'] ?? null,
                 'custom_fields' => $data['custom_fields'] ?? null,
+                'company_id' => $data['company_id'] ?? null,
             ]);
 
             LeadStageHistory::query()->create([
@@ -95,7 +96,7 @@ class LeadService
             if ($actor->isSdr()) {
                 $allowed = array_values(array_intersect($allowed, [
                     'name', 'company', 'phone', 'whatsapp', 'email', 'niche_id', 'origin',
-                    'temperature', 'next_action_at', 'notes', 'pre_sales_id', 'next_steps',
+                    'temperature', 'next_action_at', 'notes', 'pre_sales_id', 'next_steps', 'company_id',
                 ]));
             }
 

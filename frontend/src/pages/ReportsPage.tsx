@@ -16,14 +16,15 @@ interface ReportResponse {
 
 export function ReportsPage() {
   const { notify } = useToast()
-  const { niches, users } = useLookups()
+  const { niches, users, companies } = useLookups()
   const [from, setFrom] = useState(startOfMonth())
   const [to, setTo] = useState(endOfMonth())
   const [nicheId, setNicheId] = useState('')
+  const [companyId, setCompanyId] = useState('')
   const [closerId, setCloserId] = useState('')
   const [weekStart, setWeekStart] = useState(startOfWeek())
   const [generating, setGenerating] = useState(false)
-  const params = { from: from || undefined, to: to || undefined, niche_id: nicheId || undefined, closer_id: closerId || undefined }
+  const params = { from: from || undefined, to: to || undefined, niche_id: nicheId || undefined, company_id: companyId || undefined, closer_id: closerId || undefined }
   const { data, loading, error, reload } = useApi<ReportResponse>('/reports', params)
   const runsApi = useApi<{ data: { data: ReportRun[] } }>('/reports/runs')
   const report = data?.data
@@ -36,6 +37,7 @@ export function ReportsPage() {
     if (from) query.set('from', from)
     if (to) query.set('to', to)
     if (nicheId) query.set('niche_id', nicheId)
+    if (companyId) query.set('company_id', companyId)
     if (closerId) query.set('closer_id', closerId)
     const labels: Record<string, string> = { leads: 'leads', calls: 'calls', payments: 'pagamentos', commissions: 'comissoes' }
     try {
@@ -66,6 +68,7 @@ export function ReportsPage() {
           <label className="pill" style={{ gap: 6 }}><Icon name="calendar" size={13} /><span>De</span><input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="bare-input" style={{ width: 100 }} /></label>
           <label className="pill" style={{ gap: 6 }}><span>até</span><input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="bare-input" style={{ width: 100 }} /></label>
           <Select value={nicheId} onChange={(event) => setNicheId(event.target.value)} style={{ width: 155 }}><option value="">Todos os nichos</option>{niches.map((niche) => <option key={niche.id} value={niche.id}>{niche.name}</option>)}</Select>
+          <Select value={companyId} onChange={(event) => setCompanyId(event.target.value)} style={{ width: 155 }}><option value="">Todas as empresas</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</Select>
           <Select value={closerId} onChange={(event) => setCloserId(event.target.value)} style={{ width: 155 }}><option value="">Todos os closers</option>{users.filter((item) => item.role !== 'sdr').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
         </div>
         <Button icon="refresh" onClick={reload}>Atualizar</Button>

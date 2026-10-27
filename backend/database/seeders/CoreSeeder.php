@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\CommissionRule;
+use App\Models\Company;
 use App\Models\IntegrationSetting;
 use App\Models\Niche;
 use App\Models\PaymentSource;
@@ -96,6 +97,24 @@ class CoreSeeder extends Seeder
 
         foreach (PaymentSource::defaultSources() as $source) {
             PaymentSource::query()->firstOrCreate(['slug' => $source['slug']], $source + ['active' => true]);
+        }
+
+        $companies = [
+            ['name' => 'Acme Corp', 'cnpj' => '12345678000100', 'email' => 'contato@acme.com', 'active' => true],
+            ['name' => 'Global Ltda', 'cnpj' => '98765432000150', 'email' => 'vendas@global.com', 'active' => true],
+            ['name' => 'Tech Solutions', 'cnpj' => '11223344000199', 'email' => 'suporte@techsolutions.com', 'active' => true],
+        ];
+
+        foreach ($companies as $companyData) {
+            $company = Company::query()->firstOrCreate(['cnpj' => $companyData['cnpj']], $companyData);
+
+            if ($owner && $company->wasRecentlyCreated) {
+                $owner->companies()->attach($company->getKey());
+            }
+        }
+
+        if ($owner && $owner->companies()->count() === 0) {
+            Company::query()->where('active', true)->limit(1)->get()->each(fn ($c) => $owner->companies()->attach($c->getKey()));
         }
 
         if (! CommissionRule::query()->where('active', true)->exists()) {

@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useApi } from '@/lib/hooks'
+import { useApi, useLookups } from '@/lib/hooks'
 import type { Dashboard } from '@/lib/types'
 import { STAGES } from '@/lib/constants'
 import {
   date, endOfMonth, money, num, pct, periodLabel, percentOf, startOfMonth, today,
 } from '@/lib/format'
-import { ErrorState, Icon, LoadingState, Panel, Stat } from '@/components/ui'
+import { ErrorState, Icon, LoadingState, Panel, Select, Stat } from '@/components/ui'
 
 const palette = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', '#58a6a6', '#b2a35d']
 
@@ -25,9 +25,12 @@ function conic(items: Array<{ value: number }>) {
 export function OverviewPage() {
   const [from, setFrom] = useState(startOfMonth())
   const [to, setTo] = useState(endOfMonth())
+  const [companyId, setCompanyId] = useState('')
+  const { companies } = useLookups()
   const { data, loading, error, reload } = useApi<{ data: Dashboard }>('/dashboard', {
     from: from || undefined,
     to: to || undefined,
+    company_id: companyId || undefined,
   })
   const dashboard = data?.data
 
@@ -56,6 +59,10 @@ export function OverviewPage() {
             <span>até</span>
             <input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="bare-input" style={{ width: 105 }} />
           </label>
+          <Select value={companyId} onChange={(event) => setCompanyId(event.target.value)} style={{ width: 155 }}>
+            <option value="">Todas as empresas</option>
+            {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+          </Select>
         </div>
         <div className="page-toolbar-right">
           <button className="btn btn-primary" onClick={reload}><Icon name="refresh" size={15} />Atualizar</button>

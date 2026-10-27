@@ -34,6 +34,17 @@ export interface Team {
   users_count?: number
 }
 
+export interface Company {
+  id: string
+  name: string
+  cnpj?: string | null
+  email?: string | null
+  phone?: string | null
+  address?: string | null
+  active: boolean
+  users_count?: number
+}
+
 export interface Niche {
   id: string
   name: string
@@ -88,6 +99,7 @@ export interface Lead {
   notes?: string | null
   commission_percentage?: string | number | null
   commission_amount?: string | number | null
+  company_id?: string | null
   created_at: string
   updated_at: string
   interactions?: LeadInteraction[]

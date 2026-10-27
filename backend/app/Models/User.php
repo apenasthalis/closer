@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Company;
 
 #[Fillable(['name', 'email', 'password', 'role', 'active', 'phone', 'avatar_color', 'team_id', 'last_login_at'])]
 #[Hidden(['password', 'remember_token'])]
@@ -66,6 +68,11 @@ class User extends Authenticatable
     public function authSessions(): HasMany
     {
         return $this->hasMany(AuthSession::class);
+    }
+
+    public function companies(): BelongsToMany
+    {
+        return $this->belongsToMany(Company::class, 'company_user', 'user_id', 'company_id')->withTimestamps();
     }
 
     public function isAdmin(): bool

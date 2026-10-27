@@ -15,6 +15,7 @@ import { ProposalsPage } from '@/pages/ProposalsPage'
 import { ContractsPage } from '@/pages/ContractsPage'
 import { PaymentsPage } from '@/pages/PaymentsPage'
 import { CommissionsPage } from '@/pages/CommissionsPage'
+import { CompaniesPage } from '@/pages/CompaniesPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { TeamsPage } from '@/pages/TeamsPage'
@@ -90,6 +91,7 @@ function AppRoutes() {
       <Route path="/reports" element={<Protected><PermissionGate roles={['admin', 'manager']}><ReportsPage /></PermissionGate></Protected>} />
       <Route path="/users" element={<Protected><PermissionGate permission="manage_users"><UsersPage /></PermissionGate></Protected>} />
       <Route path="/teams" element={<Protected><PermissionGate roles={['admin']}><TeamsPage /></PermissionGate></Protected>} />
+      <Route path="/companies" element={<Protected><PermissionGate roles={['admin']}><CompaniesPage /></PermissionGate></Protected>} />
       <Route path="/niches" element={<Protected><PermissionGate roles={['admin']}><NichesPage /></PermissionGate></Protected>} />
       <Route path="/settings" element={<Protected><PermissionGate permission="manage_settings"><SettingsPage /></PermissionGate></Protected>} />
       <Route path="/audit" element={<Protected><PermissionGate roles={['admin']}><AuditPage /></PermissionGate></Protected>} />

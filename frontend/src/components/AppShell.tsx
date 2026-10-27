@@ -47,6 +47,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { to: '/reports', label: 'Relatórios', icon: 'reports', permission: 'view_financials' },
       { to: '/users', label: 'Usuários', icon: 'users', permission: 'manage_users' },
       { to: '/teams', label: 'Equipes', icon: 'briefcase', roles: ['admin'] },
+      { to: '/companies', label: 'Empresas', icon: 'briefcase', roles: ['admin'] },
       { to: '/niches', label: 'Nichos', icon: 'niches', roles: ['admin'] },
       { to: '/settings', label: 'Configurações', icon: 'settings', permission: 'manage_settings' },
       { to: '/audit', label: 'Auditoria', icon: 'audit', roles: ['admin'] },

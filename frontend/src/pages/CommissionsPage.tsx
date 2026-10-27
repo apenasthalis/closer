@@ -21,10 +21,11 @@ const scopeLabels: Record<string, string> = { global: 'Global', user: 'Usuário'
 export function CommissionsPage() {
   const { user } = useAuth()
   const { notify } = useToast()
-  const { users, teams, niches } = useLookups()
+  const { users, teams, niches, companies } = useLookups()
   const [tab, setTab] = useState('commissions')
   const [from, setFrom] = useState(startOfMonth())
   const [to, setTo] = useState(endOfMonth())
+  const [companyId, setCompanyId] = useState('')
   const [status, setStatus] = useState('')
   const [calculating, setCalculating] = useState(false)
   const [reversing, setReversing] = useState<Commission | null>(null)
@@ -48,6 +49,7 @@ export function CommissionsPage() {
   const { data, loading, error, reload } = useApi<CommissionResponse>('/commissions', {
     from: from || undefined,
     to: to || undefined,
+    company_id: companyId || undefined,
     status: status || undefined,
   })
   const rulesApi = useApi<{ data: CommissionRule[] }>('/commission-rules', undefined, tab === 'rules' && Boolean(user?.permissions?.view_financials))
@@ -177,6 +179,10 @@ export function CommissionsPage() {
             <span>até</span>
             <input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="bare-input" style={{ width: 100 }} />
           </label>
+          <Select value={companyId} onChange={(event) => setCompanyId(event.target.value)} style={{ width: 155 }}>
+            <option value="">Todas as empresas</option>
+            {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+          </Select>
           {tab === 'commissions' ? (
             <>
               <Select value={status} onChange={(event) => setStatus(event.target.value)} style={{ width: 150 }}><option value="">Todos os status</option>{Object.entries(COMMISSION_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select>

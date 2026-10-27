@@ -40,6 +40,7 @@ function emptyForm(defaultStage = 'lead_agendado') {
     receita_prevista: '',
     commission_percentage: '',
     commission_amount: '',
+    company_id: '',
     meeting_at: '',
     next_action_at: '',
     notes: '',
@@ -47,7 +48,7 @@ function emptyForm(defaultStage = 'lead_agendado') {
 }
 
 export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: LeadFormModalProps) {
-  const { niches, users } = useLookups(open)
+  const { niches, users, companies } = useLookups(open)
   const { notify } = useToast()
   const [form, setForm] = useState(emptyForm(defaultStage))
   const [saving, setSaving] = useState(false)
@@ -75,6 +76,7 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
         receita_prevista: lead.receita_prevista ? String(lead.receita_prevista) : '',
         commission_percentage: lead.commission_percentage !== null && lead.commission_percentage !== undefined ? String(lead.commission_percentage) : '',
         commission_amount: lead.commission_amount !== null && lead.commission_amount !== undefined ? String(lead.commission_amount) : '',
+        company_id: lead.company_id || '',
         meeting_at: lead.meeting_at ? new Date(lead.meeting_at).toISOString().slice(0, 16) : '',
         next_action_at: toLocalInput(lead.next_action_at),
         notes: lead.notes || '',
@@ -89,9 +91,10 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
   const save = async () => {
     setSaving(true)
     setError('')
+    const selectedCompany = companies.find((c) => c.id === form.company_id)
     const payload: Record<string, unknown> = {
       name: form.name,
-      company: form.company || null,
+      company: selectedCompany ? selectedCompany.name : null,
       phone: form.phone || null,
       whatsapp: form.whatsapp || null,
       email: form.email || null,
@@ -107,6 +110,7 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
       receita_prevista: form.receita_prevista || null,
       commission_percentage: form.commission_percentage || null,
       commission_amount: form.commission_amount || null,
+      company_id: form.company_id || null,
       meeting_at: form.meeting_at || null,
       next_action_at: form.next_action_at || null,
       notes: form.notes || null,
@@ -146,6 +150,12 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
           <Select value={form.niche_id} onChange={(event) => change('niche_id', event.target.value)}>
             <option value="">Sem nicho</option>
             {niches.map((niche) => <option key={niche.id} value={niche.id}>{niche.name}</option>)}
+          </Select>
+        </Field>
+        <Field label="Empresa">
+          <Select value={form.company_id} onChange={(event) => change('company_id', event.target.value)}>
+            <option value="">Sem empresa</option>
+            {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
           </Select>
         </Field>
         <Field label="Origem">

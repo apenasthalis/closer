@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, apiMessage } from './api'
-import type { Niche, PaymentSource, Team, User } from './types'
+import type { Company, Niche, PaymentSource, Team, User } from './types'
 
 export function useApi<T>(url: string | null, params?: Record<string, unknown>, enabled = true) {
   const [data, setData] = useState<T | null>(null)
@@ -50,6 +50,7 @@ export function useLookups(enabled = true) {
   const [niches, setNiches] = useState<Niche[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [users, setUsers] = useState<User[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(enabled)
   const [version, setVersion] = useState(0)
 
@@ -63,11 +64,13 @@ export function useLookups(enabled = true) {
       api.get('/niches'),
       api.get('/teams'),
       api.get('/users/options'),
-    ]).then(([nichesResult, teamsResult, usersResult]) => {
+      api.get('/companies'),
+    ]).then(([nichesResult, teamsResult, usersResult, companiesResult]) => {
       if (!active) return
       if (nichesResult.status === 'fulfilled') setNiches(nichesResult.value.data.data || [])
       if (teamsResult.status === 'fulfilled') setTeams(teamsResult.value.data.data || [])
       if (usersResult.status === 'fulfilled') setUsers(usersResult.value.data.data || [])
+      if (companiesResult.status === 'fulfilled') setCompanies(companiesResult.value.data.data || [])
     }).finally(() => {
       if (active) setLoading(false)
     })
@@ -76,7 +79,7 @@ export function useLookups(enabled = true) {
     }
   }, [enabled, version])
 
-  return { niches, teams, users, loading, reload }
+  return { niches, teams, users, companies, loading, reload }
 }
 
 export function useInterval(callback: () => void, delay: number | null) {
