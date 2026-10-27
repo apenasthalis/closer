@@ -51,6 +51,8 @@ vê apenas os registros pelos quais é responsável (leads em que é closer ou
 pré-vendas, próprias calls, lembretes, pagamentos e comissões). Nenhum perfil,
 inclusive o administrador, enxerga dados de outro usuário; o admin continua
 gerenciando usuários, equipes, nichos, regras de comissão e configurações.
+Todo lead precisa de um responsável: quem cria o lead já é assumido como closer,
+e leads importados sem responsável são vinculados ao administrador na publicação.
 
 Em produção o banco contém apenas o admin: o `DemoDataSeeder` roda somente no
 ambiente `local`, então leads, scripts, objeções, comissões e demais dados de
