@@ -25,8 +25,9 @@ return new class extends Migration
 
         if (! Schema::hasTable('company_user')) {
             Schema::create('company_user', function (Blueprint $table) {
-                $table->foreignId('company_id')->constrained('companies')->cascadeOnDelete();
+                $table->uuid('company_id');
                 $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->foreign('company_id')->references('id')->on('companies')->cascadeOnDelete();
                 $table->primary(['company_id', 'user_id']);
                 $table->timestamps();
             });
