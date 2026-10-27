@@ -96,7 +96,7 @@ class CallController extends Controller
     {
         $this->authorizeCall($request, $call);
         $data = $request->validated();
-        unset($data['closer_id'], $data['lead_id']);
+        unset($data['closer_id']);
 
         if (! empty($data['lead_id'])) {
             $this->authorizeLead($request, $data['lead_id']);

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { api, apiMessage, download } from '@/lib/api'
 import { useApi, useLookups } from '@/lib/hooks'
-import { date, dateTime, money, monthValue, num, pct, periodLabel, startOfWeek } from '@/lib/format'
+import { date, dateTime, endOfMonth, money, num, pct, periodLabel, startOfMonth, startOfWeek } from '@/lib/format'
 import type { Dashboard, LossAnalysis, ReportRun } from '@/lib/types'
 import { Badge, Button, EmptyState, ErrorState, Field, Icon, Input, LoadingState, Panel, Select, Stat, useToast } from '@/components/ui'
 
@@ -17,12 +17,13 @@ interface ReportResponse {
 export function ReportsPage() {
   const { notify } = useToast()
   const { niches, users } = useLookups()
-  const [period, setPeriod] = useState(monthValue())
+  const [from, setFrom] = useState(startOfMonth())
+  const [to, setTo] = useState(endOfMonth())
   const [nicheId, setNicheId] = useState('')
   const [closerId, setCloserId] = useState('')
   const [weekStart, setWeekStart] = useState(startOfWeek())
   const [generating, setGenerating] = useState(false)
-  const params = { period, niche_id: nicheId || undefined, closer_id: closerId || undefined }
+  const params = { from: from || undefined, to: to || undefined, niche_id: nicheId || undefined, closer_id: closerId || undefined }
   const { data, loading, error, reload } = useApi<ReportResponse>('/reports', params)
   const runsApi = useApi<{ data: { data: ReportRun[] } }>('/reports/runs')
   const report = data?.data
@@ -32,12 +33,13 @@ export function ReportsPage() {
 
   const exportCsv = async (type: string) => {
     const query = new URLSearchParams()
-    query.set('period', period)
+    if (from) query.set('from', from)
+    if (to) query.set('to', to)
     if (nicheId) query.set('niche_id', nicheId)
     if (closerId) query.set('closer_id', closerId)
     const labels: Record<string, string> = { leads: 'leads', calls: 'calls', payments: 'pagamentos', commissions: 'comissoes' }
     try {
-      await download(`/reports/export/${type}?${query.toString()}`, `${labels[type] || type}-${period}.csv`)
+      await download(`/reports/export/${type}?${query.toString()}`, `${labels[type] || type}-${from}-${to}.csv`)
       notify('Exportação gerada.')
     } catch (requestError) {
       notify(apiMessage(requestError), 'error')
@@ -61,7 +63,8 @@ export function ReportsPage() {
     <div>
       <div className="page-toolbar">
         <div className="page-toolbar-left">
-          <label className="pill" style={{ gap: 6 }}><Icon name="calendar" size={13} /><input type="month" value={period} onChange={(event) => setPeriod(event.target.value)} className="bare-input" style={{ width: 116 }} /></label>
+          <label className="pill" style={{ gap: 6 }}><Icon name="calendar" size={13} /><span>De</span><input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="bare-input" style={{ width: 100 }} /></label>
+          <label className="pill" style={{ gap: 6 }}><span>até</span><input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="bare-input" style={{ width: 100 }} /></label>
           <Select value={nicheId} onChange={(event) => setNicheId(event.target.value)} style={{ width: 155 }}><option value="">Todos os nichos</option>{niches.map((niche) => <option key={niche.id} value={niche.id}>{niche.name}</option>)}</Select>
           <Select value={closerId} onChange={(event) => setCloserId(event.target.value)} style={{ width: 155 }}><option value="">Todos os closers</option>{users.filter((item) => item.role !== 'sdr').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
         </div>

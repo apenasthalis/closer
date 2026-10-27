@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { useApi, useLookups } from '@/lib/hooks'
 import { STAGES } from '@/lib/constants'
-import { date, money, monthValue, num, pct, periodLabel, percentOf } from '@/lib/format'
+import { date, endOfMonth, money, num, pct, periodLabel, percentOf, startOfMonth, today } from '@/lib/format'
 import type { Dashboard, LossAnalysis } from '@/lib/types'
 import { ErrorState, Icon, LoadingState, Panel, Select, Stat } from '@/components/ui'
 
 export function DashboardPage() {
-  const [period, setPeriod] = useState(monthValue())
+  const [from, setFrom] = useState(startOfMonth())
+  const [to, setTo] = useState(endOfMonth())
   const [nicheId, setNicheId] = useState('')
   const [closerId, setCloserId] = useState('')
   const { niches, users } = useLookups()
-  const params = { period, niche_id: nicheId || undefined, closer_id: closerId || undefined }
+  const params = { from: from || undefined, to: to || undefined, niche_id: nicheId || undefined, closer_id: closerId || undefined }
   const { data, loading, error, reload } = useApi<{ data: Dashboard }>('/dashboard', params)
   const { data: lossData } = useApi<{ data: LossAnalysis }>('/dashboard/losses', params)
   const dashboard = data?.data
@@ -26,7 +27,12 @@ export function DashboardPage() {
         <div className="page-toolbar-left">
           <label className="pill" style={{ cursor: 'pointer', gap: 6 }}>
             <Icon name="calendar" size={13} />
-            <input type="month" value={period} onChange={(event) => setPeriod(event.target.value)} style={{ border: 'none', background: 'transparent', color: 'var(--text)', outline: 'none', width: 116 }} />
+            <span>De</span>
+            <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} style={{ border: 'none', background: 'transparent', color: 'var(--text)', outline: 'none', width: 105 }} />
+          </label>
+          <label className="pill" style={{ cursor: 'pointer', gap: 6 }}>
+            <span>até</span>
+            <input type="date" value={to} onChange={(event) => setTo(event.target.value)} style={{ border: 'none', background: 'transparent', color: 'var(--text)', outline: 'none', width: 105 }} />
           </label>
           <Select value={nicheId} onChange={(event) => setNicheId(event.target.value)} style={{ width: 155 }}>
             <option value="">Todos os nichos</option>

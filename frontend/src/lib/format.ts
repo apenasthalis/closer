@@ -62,6 +62,18 @@ export function today() {
   return isoDate(new Date())
 }
 
+export function startOfMonth(value = new Date()) {
+  const d = new Date(value)
+  d.setDate(1)
+  return isoDate(d)
+}
+
+export function endOfMonth(value = new Date()) {
+  const d = new Date(value)
+  d.setMonth(d.getMonth() + 1, 0)
+  return isoDate(d)
+}
+
 export function monthValue(value = new Date()) {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`
 }

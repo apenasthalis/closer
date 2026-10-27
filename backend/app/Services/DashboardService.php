@@ -48,6 +48,11 @@ class DashboardService
             ->get();
 
         $leadIds = $leads->pluck('id')->all();
+
+        $today = now()->toDateString();
+        $meetingsToday = $leads->filter(fn (Lead $lead) => $lead->meeting_at && $lead->meeting_at->format('Y-m-d') === $today);
+        $meetingsTodayClosed = $meetingsToday->where('stage', 'fechado')->count();
+        $meetingsTodayLoss = $meetingsToday->where('stage', 'loss')->count();
         $createdInPeriod = $leads->filter(fn (Lead $lead) => $this->between($lead->created_at, $from, $to));
         $closedInPeriod = $leads->filter(fn (Lead $lead) => $lead->stage === 'fechado' && $this->between($lead->last_stage_change_at ?? $lead->updated_at, $from, $to));
         $lostInPeriod = $leads->filter(fn (Lead $lead) => $lead->stage === 'loss' && $this->between($lead->last_stage_change_at ?? $lead->updated_at, $from, $to));
@@ -228,6 +233,11 @@ class DashboardService
             'ranking' => $ranking,
             'conversion_by_stage' => $stageReached,
             'commissions_available' => $user->canViewFinancials() || $user->isCloser(),
+            'meetings_today' => [
+                'total' => $meetingsToday->count(),
+                'closed' => $meetingsTodayClosed,
+                'loss' => $meetingsTodayLoss,
+            ],
         ];
     }
 

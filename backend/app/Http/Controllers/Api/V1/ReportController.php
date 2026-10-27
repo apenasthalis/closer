@@ -28,9 +28,17 @@ class ReportController extends Controller
         abort_unless($request->user()->isAdmin() || $request->user()->isManager(), 403);
         $filters = $request->validate([
             'period' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
             'niche_id' => ['nullable', 'uuid'],
             'closer_id' => ['nullable', 'integer'],
         ]);
+
+        if (! empty($filters['period'])) {
+            $start = \Illuminate\Support\Carbon::createFromFormat('Y-m', $filters['period'])->startOfMonth();
+            $filters['from'] = $start->toDateString();
+            $filters['to'] = $start->copy()->endOfMonth()->toDateString();
+        }
 
         $filters = $this->scopeFilters($request, $filters);
         $user = $request->user();
@@ -38,6 +46,7 @@ class ReportController extends Controller
         return response()->json([
             'data' => [
                 'generated_at' => now()->toIso8601String(),
+                'period' => ['from' => $filters['from'] ?? null, 'to' => $filters['to'] ?? null],
                 'dashboard' => $this->dashboard->build($user, $filters),
                 'losses' => $this->dashboard->lossAnalysis($user, $filters),
                 'limitations' => [
@@ -55,12 +64,21 @@ class ReportController extends Controller
 
         $filters = $request->validate([
             'period' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
             'niche_id' => ['nullable', 'uuid'],
             'closer_id' => ['nullable', 'integer'],
         ]);
 
-        $filters = $this->scopeFilters($request, $filters);
-        [$from, $to] = $this->period($filters['period'] ?? null);
+        if (! empty($filters['period'])) {
+            $start = \Illuminate\Support\Carbon::createFromFormat('Y-m', $filters['period'])->startOfMonth();
+            $filters['from'] = $start->toDateString();
+            $filters['to'] = $start->copy()->endOfMonth()->toDateString();
+        }
+
+        [$from, $to] = $filters['from'] && $filters['to']
+            ? [\Illuminate\Support\Carbon::parse($filters['from']), \Illuminate\Support\Carbon::parse($filters['to'])]
+            : $this->period($filters['period'] ?? null);
         $user = $request->user();
 
         return match ($type) {

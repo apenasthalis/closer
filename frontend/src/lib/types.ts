@@ -79,6 +79,7 @@ export interface Lead {
   first_contact_at?: string | null
   last_interaction_at?: string | null
   next_action_at?: string | null
+  meeting_at?: string | null
   last_stage_change_at?: string | null
   next_steps?: string[] | null
   loss_reason?: string | null
@@ -381,6 +382,11 @@ export interface Dashboard {
     cancelled: number
     attendance_rate: number | null
     by_day: Array<{ date: string; completed: number; scheduled: number; no_show: number; cancelled: number }>
+  }
+  meetings_today: {
+    total: number
+    closed: number
+    loss: number
   }
   by_niche: Array<{
     id: string

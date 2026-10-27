@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api, apiMessage } from '@/lib/api'
 import { useApi, useDebounced, useLookups } from '@/lib/hooks'
 import { STAGES, STAGE_LABELS, TEMPERATURE_LABELS } from '@/lib/constants'
-import { date, money, relative } from '@/lib/format'
+import { date, endOfMonth, money, relative, startOfMonth } from '@/lib/format'
 import type { Lead } from '@/lib/types'
 import { Button, ErrorState, Field, Icon, Input, LoadingState, Modal, SearchInput, Select, Textarea, useToast } from '@/components/ui'
 import { LeadFormModal } from '@/components/LeadFormModal'
@@ -32,6 +32,8 @@ export function PipelinePage() {
   const { niches, users } = useLookups()
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounced(search)
+  const [from, setFrom] = useState(startOfMonth())
+  const [to, setTo] = useState(endOfMonth())
   const [nicheId, setNicheId] = useState('')
   const [closerId, setCloserId] = useState('')
   const [dragLead, setDragLead] = useState<Lead | null>(null)
@@ -46,6 +48,8 @@ export function PipelinePage() {
     q: debouncedSearch || undefined,
     niche_id: nicheId || undefined,
     closer_id: closerId || undefined,
+    from: from || undefined,
+    to: to || undefined,
   })
 
   const columns = useMemo(() => {
@@ -141,6 +145,15 @@ export function PipelinePage() {
       <div className="page-toolbar">
         <div className="page-toolbar-left">
           <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome ou empresa..." />
+          <label className="pill" style={{ cursor: 'pointer', gap: 6, marginLeft: 10 }}>
+            <Icon name="calendar" size={12} />
+            <span>De</span>
+            <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="bare-input" style={{ width: 95 }} />
+          </label>
+          <label className="pill" style={{ cursor: 'pointer', gap: 6 }}>
+            <span>até</span>
+            <input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="bare-input" style={{ width: 95 }} />
+          </label>
           <Select value={nicheId} onChange={(event) => setNicheId(event.target.value)} style={{ width: 165 }}>
             <option value="">Todos os nichos</option>
             {niches.map((niche) => <option key={niche.id} value={niche.id}>{niche.name}</option>)}

@@ -38,7 +38,7 @@ class Lead extends Model
         'name', 'company', 'phone', 'whatsapp', 'email', 'niche_id', 'origin',
         'stage', 'temperature', 'priority', 'position', 'closer_id', 'pre_sales_id',
         'ticket_estimado', 'valor_negociado', 'ticket_fechado', 'receita_prevista',
-        'first_contact_at', 'last_interaction_at', 'next_action_at', 'last_stage_change_at',
+        'first_contact_at', 'last_interaction_at', 'next_action_at', 'meeting_at', 'last_stage_change_at',
         'next_steps', 'loss_reason', 'disqualify_reason', 'call_id', 'saldo_devedor',
         'parcelas', 'custom_fields', 'notes', 'commission_percentage', 'commission_amount',
     ];
@@ -58,6 +58,7 @@ class Lead extends Model
             'first_contact_at' => 'datetime',
             'last_interaction_at' => 'datetime',
             'next_action_at' => 'datetime',
+            'meeting_at' => 'datetime',
             'last_stage_change_at' => 'datetime',
             'next_steps' => 'array',
             'parcelas' => 'array',

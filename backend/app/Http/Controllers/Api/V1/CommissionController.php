@@ -24,6 +24,8 @@ class CommissionController extends Controller
     {
         $filters = $request->validate([
             'period' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
             'status' => ['nullable', Rule::in(['estimated', 'calculated', 'approved', 'paid', 'reversed'])],
         ]);
 
@@ -31,7 +33,9 @@ class CommissionController extends Controller
         $query = Commission::query()
             ->with(['lead:id,name,company', 'user:id,name', 'rule:id,name'])
             ->where('user_id', $user->getKey())
-            ->when($filters['period'] ?? null, fn ($builder, $period) => $builder->where('period', $period))
+            ->when($filters['from'] ?? null, fn ($builder, $from) => $builder->whereDate('created_at', '>=', $from))
+            ->when($filters['to'] ?? null, fn ($builder, $to) => $builder->whereDate('created_at', '<=', $to))
+            ->when(! ($filters['from'] ?? null) && ! ($filters['to'] ?? null) && ($filters['period'] ?? null), fn ($builder, $period) => $builder->where('period', $period))
             ->when($filters['status'] ?? null, fn ($builder, $status) => $builder->where('status', $status));
 
         $rows = $query->latest()->get();
@@ -47,10 +51,34 @@ class CommissionController extends Controller
     public function calculate(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'period' => ['required', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'period' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
         ]);
 
-        $result = $this->commissions->calculatePeriod($request->user(), $data['period']);
+        $from = $data['from'] ?? null;
+        $to = $data['to'] ?? null;
+
+        if ($from && $to) {
+            $start = \Illuminate\Support\Carbon::parse($from)->startOfMonth();
+            $end = \Illuminate\Support\Carbon::parse($to)->startOfMonth();
+            $periods = [];
+            while ($start->lte($end)) {
+                $periods[] = $start->format('Y-m');
+                $start->addMonth();
+            }
+            $created = 0;
+            $skipped = 0;
+            foreach ($periods as $period) {
+                $result = $this->commissions->calculatePeriod($request->user(), $period);
+                $created += $result['calculated'];
+                $skipped += $result['skipped'];
+            }
+            return response()->json(['data' => ['period' => $data['period'] ?? $periods[0], 'from' => $from, 'to' => $to, 'calculated' => $created, 'skipped' => $skipped, 'months' => count($periods)], 'message' => count($periods) > 1 ? "Comissões calculadas para ${count($periods)} mês(es)." : 'Comissões calculadas.']);
+        }
+
+        $period = $data['period'] ?? now()->format('Y-m');
+        $result = $this->commissions->calculatePeriod($request->user(), $period);
 
         return response()->json(['data' => $result, 'message' => 'Comissões calculadas.']);
     }

@@ -4,7 +4,7 @@ import { api, apiMessage } from '@/lib/api'
 import { useApi, useLookups } from '@/lib/hooks'
 import { useAuth } from '@/auth/AuthProvider'
 import { COMMISSION_STATUS } from '@/lib/constants'
-import { monthValue, money, dateTime } from '@/lib/format'
+import { date, endOfMonth, money, startOfMonth, dateTime } from '@/lib/format'
 import type { Commission, CommissionRule } from '@/lib/types'
 import {
   Badge, Button, ConfirmDialog, EmptyState, ErrorState, Field, Icon, IconButton, Input,
@@ -23,7 +23,8 @@ export function CommissionsPage() {
   const { notify } = useToast()
   const { users, teams, niches } = useLookups()
   const [tab, setTab] = useState('commissions')
-  const [period, setPeriod] = useState(monthValue())
+  const [from, setFrom] = useState(startOfMonth())
+  const [to, setTo] = useState(endOfMonth())
   const [status, setStatus] = useState('')
   const [calculating, setCalculating] = useState(false)
   const [reversing, setReversing] = useState<Commission | null>(null)
@@ -45,7 +46,8 @@ export function CommissionsPage() {
   const [deactivating, setDeactivating] = useState<CommissionRule | null>(null)
 
   const { data, loading, error, reload } = useApi<CommissionResponse>('/commissions', {
-    period,
+    from: from || undefined,
+    to: to || undefined,
     status: status || undefined,
   })
   const rulesApi = useApi<{ data: CommissionRule[] }>('/commission-rules', undefined, tab === 'rules' && Boolean(user?.permissions?.view_financials))
@@ -58,9 +60,9 @@ export function CommissionsPage() {
   const calculate = async () => {
     setCalculating(true)
     try {
-      const response = await api.post('/commissions/calculate', { period })
+      const response = await api.post('/commissions/calculate', { from, to })
       const result = response.data?.data
-      notify(result ? `${result.calculated} comissão(ões) calculada(s), ${result.skipped} ignorada(s).` : 'Comissões calculadas.')
+      notify(result ? result.message || 'Comissões calculadas.' : 'Comissões calculadas.')
       reload()
     } catch (requestError) {
       notify(apiMessage(requestError), 'error')
@@ -166,7 +168,15 @@ export function CommissionsPage() {
     <div>
       <div className="page-toolbar">
         <div className="page-toolbar-left">
-          <label className="pill" style={{ cursor: 'pointer', gap: 6 }}><Icon name="calendar" size={13} /><input type="month" value={period} onChange={(event) => setPeriod(event.target.value)} className="bare-input" style={{ width: 116 }} /></label>
+          <label className="pill" style={{ cursor: 'pointer', gap: 6 }}>
+            <Icon name="calendar" size={13} />
+            <span>De</span>
+            <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="bare-input" style={{ width: 100 }} />
+          </label>
+          <label className="pill" style={{ cursor: 'pointer', gap: 6 }}>
+            <span>até</span>
+            <input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="bare-input" style={{ width: 100 }} />
+          </label>
           {tab === 'commissions' ? (
             <>
               <Select value={status} onChange={(event) => setStatus(event.target.value)} style={{ width: 150 }}><option value="">Todos os status</option>{Object.entries(COMMISSION_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select>

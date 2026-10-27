@@ -40,6 +40,7 @@ function emptyForm(defaultStage = 'lead_agendado') {
     receita_prevista: '',
     commission_percentage: '',
     commission_amount: '',
+    meeting_at: '',
     next_action_at: '',
     notes: '',
   }
@@ -74,6 +75,7 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
         receita_prevista: lead.receita_prevista ? String(lead.receita_prevista) : '',
         commission_percentage: lead.commission_percentage !== null && lead.commission_percentage !== undefined ? String(lead.commission_percentage) : '',
         commission_amount: lead.commission_amount !== null && lead.commission_amount !== undefined ? String(lead.commission_amount) : '',
+        meeting_at: lead.meeting_at ? new Date(lead.meeting_at).toISOString().slice(0, 16) : '',
         next_action_at: toLocalInput(lead.next_action_at),
         notes: lead.notes || '',
       })
@@ -105,6 +107,7 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
       receita_prevista: form.receita_prevista || null,
       commission_percentage: form.commission_percentage || null,
       commission_amount: form.commission_amount || null,
+      meeting_at: form.meeting_at || null,
       next_action_at: form.next_action_at || null,
       notes: form.notes || null,
     }
@@ -179,6 +182,7 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
         <Field label="Receita prevista"><Input type="number" min={0} step="0.01" value={form.receita_prevista} onChange={(event) => change('receita_prevista', event.target.value)} placeholder="0,00" /></Field>
         <Field label="Comissão (%)" hint="Comissão combinada na venda."><Input type="number" min={0} max={100} step="0.01" value={form.commission_percentage} onChange={(event) => change('commission_percentage', event.target.value)} placeholder="10" /></Field>
         <Field label="Comissão fixa (R$)"><Input type="number" min={0} step="0.01" value={form.commission_amount} onChange={(event) => change('commission_amount', event.target.value)} placeholder="0,00" /></Field>
+        <Field label="Reunião (data e hora)"><Input type="datetime-local" value={form.meeting_at} onChange={(event) => change('meeting_at', event.target.value)} /></Field>
         <Field label="Próxima ação"><Input type="datetime-local" value={form.next_action_at} onChange={(event) => change('next_action_at', event.target.value)} /></Field>
         <Field label="Observações" className="span-2"><Textarea value={form.notes} onChange={(event) => change('notes', event.target.value)} placeholder="Contexto da oportunidade, critérios e combinados." /></Field>
       </div>

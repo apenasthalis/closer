@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useApi } from '@/lib/hooks'
 import type { Dashboard } from '@/lib/types'
-import { monthLabel, monthValue, money, num, pct, periodLabel, percentOf } from '@/lib/format'
 import { STAGES } from '@/lib/constants'
+import {
+  date, endOfMonth, money, num, pct, periodLabel, percentOf, startOfMonth, today,
+} from '@/lib/format'
 import { ErrorState, Icon, LoadingState, Panel, Stat } from '@/components/ui'
 
 const palette = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', '#58a6a6', '#b2a35d']
@@ -21,8 +23,12 @@ function conic(items: Array<{ value: number }>) {
 }
 
 export function OverviewPage() {
-  const [period, setPeriod] = useState(monthValue())
-  const { data, loading, error, reload } = useApi<{ data: Dashboard }>('/dashboard', { period })
+  const [from, setFrom] = useState(startOfMonth())
+  const [to, setTo] = useState(endOfMonth())
+  const { data, loading, error, reload } = useApi<{ data: Dashboard }>('/dashboard', {
+    from: from || undefined,
+    to: to || undefined,
+  })
   const dashboard = data?.data
 
   const stageRows = useMemo(() => {
@@ -40,10 +46,15 @@ export function OverviewPage() {
     <div>
       <div className="page-toolbar">
         <div className="page-toolbar-left">
-          <span className="pill strong"><Icon name="calendar" size={14} />{dashboard ? periodLabel(dashboard.period.from, dashboard.period.to) : monthLabel(period)}</span>
+          <span className="pill strong"><Icon name="calendar" size={14} />{dashboard ? periodLabel(dashboard.period.from, dashboard.period.to) : periodLabel(from, to)}</span>
           <label className="pill" style={{ cursor: 'pointer', gap: 6 }}>
-            <Icon name="sliders" size={13} />
-            <input type="month" value={period} onChange={(event) => setPeriod(event.target.value)} style={{ border: 'none', background: 'transparent', color: 'var(--text)', outline: 'none', width: 116 }} />
+            <Icon name="calendar" size={13} />
+            <span>De</span>
+            <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="bare-input" style={{ width: 105 }} />
+          </label>
+          <label className="pill" style={{ cursor: 'pointer', gap: 6 }}>
+            <span>até</span>
+            <input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="bare-input" style={{ width: 105 }} />
           </label>
         </div>
         <div className="page-toolbar-right">
@@ -107,6 +118,18 @@ export function OverviewPage() {
                 </div>
               ))}
             </Panel>
+
+            <Panel title="Reuniões do dia" subtitle="Leads com reunião marcada para hoje e o resultado no pipeline.">
+              <div className="kpi-row three" style={{ marginBottom: 10 }}>
+                <Stat label="Reuniões hoje" value={num(dashboard.meetings_today.total)} caption="com reunião marcada para hoje" icon="clock" tone="blue" />
+                <Stat label="Fechadas" value={num(dashboard.meetings_today.closed)} caption="estão como Fechado" icon="checkCircle" tone="green" />
+                <Stat label="Loss" value={num(dashboard.meetings_today.loss)} caption="estão como Loss" icon="alert" tone="rose" />
+              </div>
+              {dashboard.meetings_today.total > 0 ? (
+                <div className="callout mt-8">Marque a data e a hora da reunião na criação ou edição de um lead para aparecer aqui.</div>
+              ) : null}
+            </Panel>
+
             <Panel title="Financeiro do período" subtitle="Valores claramente separados por estágio do caixa.">
               <div className="kv"><span>Faturamento previsto</span><b>{money(dashboard.revenue.forecast)}</b></div>
               <div className="kv"><span>Receita contratada</span><b>{money(dashboard.revenue.contracted)}</b></div>

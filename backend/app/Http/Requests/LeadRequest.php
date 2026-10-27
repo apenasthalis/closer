@@ -36,6 +36,7 @@ class LeadRequest extends FormRequest
             'first_contact_at' => ['nullable', 'date'],
             'last_interaction_at' => ['nullable', 'date'],
             'next_action_at' => ['nullable', 'date'],
+            'meeting_at' => ['nullable', 'date'],
             'next_steps' => ['nullable', 'array', 'max:20'],
             'next_steps.*' => ['string', 'max:300'],
             'loss_reason' => ['nullable', 'string', 'max:2000'],

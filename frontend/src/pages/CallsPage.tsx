@@ -49,6 +49,10 @@ export function CallsPage() {
   const [formError, setFormError] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [creatingTasks, setCreatingTasks] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editTranscript, setEditTranscript] = useState('')
+  const [editLeadId, setEditLeadId] = useState('')
+  const [editingLeadName, setEditingLeadName] = useState('')
 
   const { data, loading, error, reload } = useApi<Paginated<Call>>('/calls', {
     status: status || undefined,
@@ -110,6 +114,35 @@ export function CallsPage() {
       notify(apiMessage(requestError), 'error')
     } finally {
       setAnalyzing(false)
+    }
+  }
+
+  const openEdit = () => {
+    if (!call) return
+    setEditTranscript(call.transcript?.text || '')
+    setEditLeadId(call.lead_id || '')
+    setEditingLeadName(call.lead?.name || '')
+    setEditing(true)
+  }
+
+  const saveEdit = async () => {
+    if (!call) return
+    setSaving(true)
+    setFormError('')
+    try {
+      await api.put(`/calls/${call.id}`, {
+        title: call.title,
+        lead_id: editLeadId || null,
+        transcript: editTranscript.trim() ? { text: editTranscript.trim() } : null,
+      })
+      notify('Call atualizada.')
+      setEditing(false)
+      reloadDetail()
+      reload()
+    } catch (requestError) {
+      setFormError(apiMessage(requestError))
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -225,10 +258,29 @@ export function CallsPage() {
           <>
             <Button onClick={() => setSelected(null)}>Fechar</Button>
             {call?.transcript ? <Button icon="sparkle" loading={analyzing} onClick={analyze}>{call.analysis_status === 'completed' ? 'Reanalisar' : 'Analisar localmente'}</Button> : null}
+            {call ? <Button variant="ghost" icon="edit" onClick={openEdit}>Editar</Button> : null}
           </>
         )}
       >
-        {detailLoading && !call ? <LoadingState /> : call ? (
+        {detailLoading && !call ? <LoadingState /> : editing ? (
+          <div className="panel panel-padded">
+            <div className="panel-head"><div><h4>Editar call</h4><p className="panel-sub">Altere a transcrição e o lead vinculado. Se a transcrição mudar, a análise é invalidada e será reexecutada ao analisar novamente.</p></div></div>
+            {formError ? <div className="login-error" style={{ marginBottom: 13 }}>{formError}</div> : null}
+            <div className="form-grid">
+              <Field label="Transcrição" hint="Cole o texto da conversa. Use Closer: e Lead: no início das falas para orientar a análise." className="span-2">
+                <Textarea rows={8} value={editTranscript} onChange={(event) => setEditTranscript(event.target.value)} placeholder={'Closer: Olá, tudo bem?\nLead: Oi, tudo bem.\nCloser: Me conta como funciona o processo de vocês...'} />
+              </Field>
+              <Field label="Lead">
+                <Select value={editLeadId} onChange={(event) => setEditLeadId(event.target.value)}>
+                  <option value="">Sem lead</option>
+                  {leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name}{lead.company ? ` · ${lead.company}` : ''}</option>)}
+                </Select>
+                {editingLeadName ? <div className="muted small">Vinculado a: {editingLeadName}</div> : null}
+              </Field>
+            </div>
+            <div className="form-actions"><Button onClick={() => setEditing(false)}>Cancelar</Button><Button variant="primary" loading={saving} onClick={saveEdit}>Salvar alterações</Button></div>
+          </div>
+        ) : call ? (
           <>
             {call.analysis_status !== 'completed' ? (
               <div className="callout warn" style={{ marginBottom: 14 }}>

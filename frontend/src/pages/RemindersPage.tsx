@@ -34,6 +34,7 @@ export function RemindersPage() {
   const [dueAt, setDueAt] = useState(defaultDue())
   const [priority, setPriority] = useState('5')
   const [leadId, setLeadId] = useState('')
+  const [leadSearch, setLeadSearch] = useState('')
   const [responsibleId, setResponsibleId] = useState('')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
@@ -56,6 +57,11 @@ export function RemindersPage() {
   const reminders = data?.data || []
   const canManage = user?.role === 'admin' || user?.role === 'manager'
   const overdueCount = useMemo(() => reminders.filter((reminder) => reminder.status === 'pendente' && new Date(reminder.due_at).getTime() < Date.now()).length, [reminders])
+  const filteredLeads = useMemo(() => {
+    const term = leadSearch.trim().toLowerCase()
+    if (!term) return leads
+    return leads.filter((lead) => lead.name.toLowerCase().includes(term) || (lead.company || '').toLowerCase().includes(term))
+  }, [leads, leadSearch])
 
   const create = async () => {
     if (title.trim().length < 2) return
@@ -249,9 +255,10 @@ export function RemindersPage() {
           <Field label="Prioridade"><Input type="number" min={0} max={10} value={priority} onChange={(event) => setPriority(event.target.value)} /></Field>
           <Field label="Vencimento" required><Input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /></Field>
           <Field label="Lead">
+            <Input value={leadSearch} onChange={(event) => setLeadSearch(event.target.value)} placeholder="Pesquisar lead pelo nome ou empresa..." />
             <Select value={leadId} onChange={(event) => setLeadId(event.target.value)}>
               <option value="">Sem lead</option>
-              {leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name}{lead.company ? ` · ${lead.company}` : ''}</option>)}
+              {filteredLeads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name}{lead.company ? ` · ${lead.company}` : ''}</option>)}
             </Select>
           </Field>
           {canManage ? <Field label="Responsável"><Select value={responsibleId} onChange={(event) => setResponsibleId(event.target.value)}><option value="">Meu usuário</option>{users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select></Field> : null}

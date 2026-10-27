@@ -413,6 +413,7 @@ export function LeadDetailPage() {
               <div className="kv"><span>Pré-venda</span><b>{lead.pre_sales?.name || '—'}</b></div>
               <div className="kv"><span>Última interação</span><b>{dateTime(lead.last_interaction_at)}</b></div>
               <div className="kv"><span>Mudança de etapa</span><b>{dateTime(lead.last_stage_change_at)}</b></div>
+              {lead.meeting_at ? <div className="kv"><span>Reunião</span><b>{dateTime(lead.meeting_at)}</b></div> : null}
             </section>
 
             <section className="panel panel-padded">

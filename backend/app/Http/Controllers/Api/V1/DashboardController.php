@@ -51,9 +51,26 @@ class DashboardController extends Controller
     {
         $filters = $request->validate([
             'period' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
             'niche_id' => ['nullable', 'uuid', 'exists:niches,id'],
             'closer_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
+
+        if (! empty($filters['period'])) {
+            $start = \Illuminate\Support\Carbon::createFromFormat('Y-m', $filters['period'])->startOfMonth();
+            $filters['from'] = $start->toDateString();
+            $filters['to'] = $start->copy()->endOfMonth()->toDateString();
+        }
+
+        $user = $request->user();
+
+        if (! $user->isAdmin() && ! $user->isManager()) {
+            $filters['closer_id'] = $user->getKey();
+            $filters['team_id'] = null;
+        } elseif ($user->isManager() && $user->team_id) {
+            $filters['team_id'] = $user->team_id;
+        }
 
         return response()->json(['data' => $this->dashboard->lossAnalysis($request->user(), $filters)]);
     }
