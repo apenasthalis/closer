@@ -152,17 +152,10 @@ class ReportController extends Controller
     {
         $query = Call::query()
             ->with(['lead:id,name,niche_id', 'closer:id,name,team_id'])
+            ->where('closer_id', $user->getKey())
             ->whereBetween('started_at', [$from, $to])
             ->when($filters['closer_id'] ?? null, fn ($builder, $closer) => $builder->where('closer_id', $closer))
             ->orderBy('started_at');
-
-        if (! $user->isAdmin()) {
-            if ($user->isManager() && $user->team_id) {
-                $query->whereHas('closer', fn ($builder) => $builder->where('team_id', $user->team_id));
-            } else {
-                $query->where('closer_id', $user->getKey());
-            }
-        }
 
         return $this->csv('calls-'.$from->format('Y-m').'.csv', [
             'Data', 'Título', 'Lead', 'Closer', 'Status', 'Duração (s)', 'Score', 'Provider', 'Analisada em',
@@ -194,16 +187,9 @@ class ReportController extends Controller
     {
         $query = Commission::query()
             ->with(['lead:id,name', 'user:id,name'])
+            ->where('user_id', $user->getKey())
             ->where('period', $from->format('Y-m'))
             ->orderBy('created_at');
-
-        if (! $user->isAdmin()) {
-            if ($user->isManager() && $user->team_id) {
-                $query->whereIn('user_id', \App\Models\User::query()->where('team_id', $user->team_id)->pluck('id'));
-            } else {
-                $query->where('user_id', $user->getKey());
-            }
-        }
 
         return $this->csv('comissoes-'.$from->format('Y-m').'.csv', [
             'Período', 'Lead', 'Usuário', 'Valor da venda', 'Valor recebido', 'Percentual', 'Comissão', 'Status', 'Aprovada em', 'Paga em',
@@ -245,11 +231,7 @@ class ReportController extends Controller
 
     private function scopeFilters(Request $request, array $filters): array
     {
-        $user = $request->user();
-
-        if ($user->isManager() && $user->team_id) {
-            $filters['team_id'] = $user->team_id;
-        }
+        unset($filters['team_id']);
 
         return $filters;
     }

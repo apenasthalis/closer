@@ -21,7 +21,7 @@ class UserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'min:2', 'max:120'],
             'email' => ['required', 'email', 'max:180', Rule::unique('users', 'email')->ignore($user?->getKey())],
-            'password' => [$user ? 'nullable' : 'required', 'confirmed', Password::min(10)->letters()->numbers()],
+            'password' => [$user ? 'nullable' : 'required', 'confirmed', Password::min(6)],
             'role' => ['required', Rule::in(array_keys(User::ROLES))],
             'active' => ['nullable', 'boolean'],
             'phone' => ['nullable', 'string', 'max:30'],

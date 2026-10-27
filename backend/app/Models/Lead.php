@@ -40,7 +40,7 @@ class Lead extends Model
         'ticket_estimado', 'valor_negociado', 'ticket_fechado', 'receita_prevista',
         'first_contact_at', 'last_interaction_at', 'next_action_at', 'last_stage_change_at',
         'next_steps', 'loss_reason', 'disqualify_reason', 'call_id', 'saldo_devedor',
-        'parcelas', 'custom_fields', 'notes',
+        'parcelas', 'custom_fields', 'notes', 'commission_percentage', 'commission_amount',
     ];
 
     protected function casts(): array
@@ -51,6 +51,8 @@ class Lead extends Model
             'ticket_fechado' => 'decimal:2',
             'receita_prevista' => 'decimal:2',
             'saldo_devedor' => 'decimal:2',
+            'commission_percentage' => 'decimal:2',
+            'commission_amount' => 'decimal:2',
             'priority' => 'integer',
             'position' => 'integer',
             'first_contact_at' => 'datetime',
@@ -125,24 +127,6 @@ class Lead extends Model
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        if ($user->isAdmin()) {
-            return $query;
-        }
-
-        if ($user->isManager()) {
-            if (! $user->team_id) {
-                return $query;
-            }
-
-            return $query->where(function (Builder $inner) use ($user) {
-                $inner->whereHas('closer', fn (Builder $closer) => $closer->where('team_id', $user->team_id))
-                    ->orWhereHas('preSales', fn (Builder $sdr) => $sdr->where('team_id', $user->team_id))
-                    ->orWhere(function (Builder $unassigned) {
-                        $unassigned->whereNull('closer_id')->whereNull('pre_sales_id');
-                    });
-            });
-        }
-
         return $query->where(function (Builder $inner) use ($user) {
             $inner->where('closer_id', $user->getKey())
                 ->orWhere('pre_sales_id', $user->getKey());

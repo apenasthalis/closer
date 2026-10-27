@@ -105,7 +105,7 @@ class UserController extends Controller
             'phone' => ['nullable', 'string', 'max:30'],
             'avatar_color' => ['nullable', 'string', 'max:20'],
             'current_password' => ['required_with:password', 'string'],
-            'password' => ['nullable', 'confirmed', 'min:10'],
+            'password' => ['nullable', 'confirmed', 'min:6'],
         ]);
 
         $user = $request->user();

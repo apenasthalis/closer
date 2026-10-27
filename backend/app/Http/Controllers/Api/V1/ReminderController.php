@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReminderRequest;
 use App\Models\Reminder;
-use App\Models\User;
 use App\Services\AuditService;
 use App\Services\ReminderAutomationService;
 use App\Services\ReminderService;
@@ -32,16 +31,9 @@ class ReminderController extends Controller
         ]);
 
         $user = $request->user();
-        $query = Reminder::query()->with(['lead:id,name,company,temperature,stage', 'responsible:id,name']);
-
-        if (! $user->isAdmin()) {
-            if ($user->isManager() && $user->team_id) {
-                $teamUsers = User::query()->where('team_id', $user->team_id)->pluck('id');
-                $query->whereIn('responsible_id', $teamUsers);
-            } else {
-                $query->where('responsible_id', $user->getKey());
-            }
-        }
+        $query = Reminder::query()
+            ->with(['lead:id,name,company,temperature,stage', 'responsible:id,name'])
+            ->where('responsible_id', $user->getKey());
 
         $query->when(($filters['status'] ?? 'pending') !== 'all', function ($builder) use ($filters) {
             $map = ['pending' => 'pendente', 'done' => 'concluido', 'cancelled' => 'cancelado'];
@@ -67,9 +59,7 @@ class ReminderController extends Controller
     {
         $data = $request->validated();
 
-        if (! $request->user()->isAdmin() && ! $request->user()->isManager()) {
-            $data['responsible_id'] = $request->user()->getKey();
-        }
+        $data['responsible_id'] = $request->user()->getKey();
 
         $reminder = $this->reminders->create($request->user(), $data, $request);
 
@@ -145,20 +135,6 @@ class ReminderController extends Controller
 
     private function authorizeReminder(Request $request, Reminder $reminder): void
     {
-        $user = $request->user();
-
-        if ($user->isAdmin()) {
-            return;
-        }
-
-        if ($user->isManager() && $user->team_id) {
-            $sameTeam = User::query()
-                ->where('team_id', $user->team_id)
-                ->whereKey($reminder->responsible_id)
-                ->exists();
-            abort_unless($sameTeam, 403);
-        } else {
-            abort_unless($reminder->responsible_id === $user->getKey(), 403);
-        }
+        abort_unless($reminder->responsible_id === $request->user()->getKey(), 403, 'Lembrete não acessível.');
     }
 }

@@ -150,7 +150,7 @@ class LeadService
             $from = $locked->stage;
             $old = $locked->only(['stage', 'loss_reason', 'disqualify_reason', 'ticket_fechado', 'temperature', 'position', 'next_action_at', 'next_steps', 'valor_negociado']);
 
-            $extras = Arr::only($extra, ['temperature', 'position', 'next_action_at', 'next_steps', 'valor_negociado']);
+            $extras = Arr::only($extra, ['temperature', 'position', 'next_action_at', 'next_steps', 'valor_negociado', 'commission_percentage', 'commission_amount']);
             $locked->fill($extras);
             $locked->stage = $toStage;
             $locked->last_stage_change_at = now();
@@ -190,7 +190,7 @@ class LeadService
                 'to_stage' => $toStage,
                 'reason' => $reason,
                 'user_id' => $actor->getKey(),
-                'metadata' => array_intersect_key($extra, array_flip(['ticket_fechado', 'saldo_devedor', 'temperature', 'position', 'next_action_at', 'next_steps', 'valor_negociado'])),
+                'metadata' => array_intersect_key($extra, array_flip(['ticket_fechado', 'saldo_devedor', 'temperature', 'position', 'next_action_at', 'next_steps', 'valor_negociado', 'commission_percentage', 'commission_amount'])),
             ]);
 
             LeadInteraction::query()->create([

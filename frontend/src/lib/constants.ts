@@ -95,6 +95,7 @@ export const PAYMENT_METHODS: Record<string, string> = {
   boleto: 'Boleto',
   credit_card: 'Cartão de crédito',
   debit_card: 'Cartão de débito',
+  contrato_parcelas: 'Contrato com parcelas',
   transfer: 'Transferência',
   cash: 'Dinheiro',
   other: 'Outro',

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CommissionRuleRequest;
 use App\Models\Commission;
 use App\Models\CommissionRule;
-use App\Models\User;
 use App\Services\AuditService;
 use App\Services\CommissionService;
 use Illuminate\Http\JsonResponse;
@@ -26,21 +25,14 @@ class CommissionController extends Controller
         $filters = $request->validate([
             'period' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
             'status' => ['nullable', Rule::in(['estimated', 'calculated', 'approved', 'paid', 'reversed'])],
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         $user = $request->user();
         $query = Commission::query()
             ->with(['lead:id,name,company', 'user:id,name', 'rule:id,name'])
+            ->where('user_id', $user->getKey())
             ->when($filters['period'] ?? null, fn ($builder, $period) => $builder->where('period', $period))
-            ->when($filters['status'] ?? null, fn ($builder, $status) => $builder->where('status', $status))
-            ->when($filters['user_id'] ?? null, fn ($builder, $id) => $builder->where('user_id', $id));
-
-        if (! $user->canViewFinancials()) {
-            $query->where('user_id', $user->getKey());
-        } elseif ($user->isManager() && $user->team_id) {
-            $query->whereIn('user_id', User::query()->where('team_id', $user->team_id)->pluck('id'));
-        }
+            ->when($filters['status'] ?? null, fn ($builder, $status) => $builder->where('status', $status));
 
         $rows = $query->latest()->get();
 
@@ -54,7 +46,6 @@ class CommissionController extends Controller
 
     public function calculate(Request $request): JsonResponse
     {
-        abort_unless($request->user()->canViewFinancials(), 403);
         $data = $request->validate([
             'period' => ['required', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
         ]);

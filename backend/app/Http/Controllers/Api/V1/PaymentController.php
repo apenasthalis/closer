@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PaymentRequest;
 use App\Models\Lead;
 use App\Models\Payment;
+use App\Models\PaymentSource;
 use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,6 +43,8 @@ class PaymentController extends Controller
                 'pending' => (float) Payment::query()->where('status', 'pending')->whereHas('lead', fn ($builder) => $builder->visibleTo($request->user()))->sum('amount'),
                 'paid' => (float) Payment::query()->where('status', 'paid')->whereHas('lead', fn ($builder) => $builder->visibleTo($request->user()))->sum('amount'),
                 'overdue' => (float) Payment::query()->where('status', 'pending')->whereDate('due_at', '<', now()->toDateString())->whereHas('lead', fn ($builder) => $builder->visibleTo($request->user()))->sum('amount'),
+                'cash_in' => (float) Payment::query()->where('status', 'paid')->where('enters_cash', true)->whereHas('lead', fn ($builder) => $builder->visibleTo($request->user()))->sum('amount'),
+                'cash_out' => (float) Payment::query()->where('status', 'paid')->where('enters_cash', false)->whereHas('lead', fn ($builder) => $builder->visibleTo($request->user()))->sum('amount'),
             ],
         ]);
     }
@@ -52,6 +55,10 @@ class PaymentController extends Controller
         $this->authorizeLead($request, $data['lead_id']);
 
         $status = $data['status'] ?? 'pending';
+        $source = $data['method'] ?? null
+            ? PaymentSource::query()->where('slug', $data['method'])->first()
+            : null;
+
         $payment = Payment::query()->create([
             'lead_id' => $data['lead_id'],
             'contract_id' => $data['contract_id'] ?? null,
@@ -63,11 +70,14 @@ class PaymentController extends Controller
             'paid_at' => $status === 'paid' ? ($data['paid_at'] ?? now()) : null,
             'status' => $status,
             'method' => $data['method'] ?? null,
+            'enters_cash' => $source ? (bool) $source->enters_cash : true,
             'notes' => $data['notes'] ?? null,
+            'next_action' => $data['next_action'] ?? null,
+            'next_action_at' => $data['next_action_at'] ?? null,
             'created_by' => $request->user()->getKey(),
         ]);
 
-        $this->audit->record('payment.created', $request->user(), $payment, [], $payment->only(['amount', 'status', 'due_at']), [], $request);
+        $this->audit->record('payment.created', $request->user(), $payment, [], $payment->only(['amount', 'status', 'due_at', 'method', 'enters_cash']), [], $request);
 
         return response()->json(['data' => $payment->load('lead:id,name'), 'message' => 'Pagamento registrado.'], 201);
     }
@@ -81,6 +91,8 @@ class PaymentController extends Controller
             'first_due_at' => ['required', 'date'],
             'interval_days' => ['nullable', 'integer', 'min:1', 'max:365'],
             'kind' => ['nullable', Rule::in(['installment', 'entry', 'recurring', 'other'])],
+            'method' => ['nullable', 'string', Rule::exists('payment_sources', 'slug')->where('active', true)],
+            'next_action' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $totalCents = (int) round((float) $data['total'] * 100);
@@ -89,6 +101,9 @@ class PaymentController extends Controller
         $remainder = $totalCents % $count;
         $due = Carbon::parse($data['first_due_at']);
         $interval = (int) ($data['interval_days'] ?? 30);
+        $source = $data['method'] ?? null
+            ? PaymentSource::query()->where('slug', $data['method'])->first()
+            : null;
         $created = [];
 
         for ($index = 1; $index <= $count; $index++) {
@@ -100,6 +115,9 @@ class PaymentController extends Controller
                 'amount' => $cents / 100,
                 'due_at' => $due->copy()->addDays(($index - 1) * $interval)->toDateString(),
                 'status' => 'pending',
+                'method' => $data['method'] ?? null,
+                'enters_cash' => $source ? (bool) $source->enters_cash : true,
+                'next_action' => $data['next_action'] ?? null,
                 'created_by' => $request->user()->getKey(),
             ]);
         }
@@ -117,13 +135,20 @@ class PaymentController extends Controller
         $this->authorizeLead($request, $payment->lead_id);
         $data = $request->validate([
             'status' => ['required', Rule::in(['pending', 'paid', 'overdue', 'cancelled'])],
-            'method' => ['nullable', Rule::in(['pix', 'boleto', 'credit_card', 'debit_card', 'transfer', 'cash', 'other'])],
+            'method' => ['nullable', 'string', Rule::exists('payment_sources', 'slug')->where('active', true)],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'next_action' => ['nullable', 'string', 'max:2000'],
+            'next_action_at' => ['nullable', 'date'],
         ]);
 
-        $old = $payment->only(['status', 'paid_at', 'method']);
+        $old = $payment->only(['status', 'paid_at', 'method', 'enters_cash']);
         $payment->status = $data['status'];
-        $payment->method = $data['method'] ?? $payment->method;
+
+        if (array_key_exists('method', $data) && $data['method']) {
+            $payment->method = $data['method'];
+            $source = PaymentSource::query()->where('slug', $data['method'])->first();
+            $payment->enters_cash = $source ? (bool) $source->enters_cash : $payment->enters_cash;
+        }
 
         if ($data['status'] === 'paid') {
             $payment->paid_at = $payment->paid_at ?? now();
@@ -135,8 +160,16 @@ class PaymentController extends Controller
             $payment->notes = $data['notes'];
         }
 
+        if (array_key_exists('next_action', $data)) {
+            $payment->next_action = $data['next_action'];
+        }
+
+        if (array_key_exists('next_action_at', $data)) {
+            $payment->next_action_at = $data['next_action_at'];
+        }
+
         $payment->save();
-        $this->audit->record('payment.status_changed', $request->user(), $payment, $old, $payment->only(['status', 'paid_at']), [], $request);
+        $this->audit->record('payment.status_changed', $request->user(), $payment, $old, $payment->only(['status', 'paid_at', 'method', 'enters_cash']), [], $request);
 
         return response()->json(['data' => $payment->fresh('lead:id,name'), 'message' => 'Pagamento atualizado.']);
     }

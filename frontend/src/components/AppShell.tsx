@@ -75,6 +75,10 @@ const pageMeta: Array<{ match: (path: string) => boolean; title: string; subtitl
   { match: (path) => path === '/audit', title: 'Auditoria', subtitle: 'Trilha de ações administrativas, financeiras e de CRM.' },
 ]
 
+const SIDEBAR_COLLAPSED_KEY = 'closer.sidebar.collapsed'
+
+const isMobileViewport = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 860px)').matches
+
 function metaFor(path: string) {
   return pageMeta.find((item) => item.match(path)) || { title: 'Closer OS', subtitle: 'CRM comercial.' }
 }
@@ -240,6 +244,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -250,6 +261,29 @@ export function AppShell({ children }: { children: ReactNode }) {
     setMenuOpen(false)
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
   }, [location.pathname])
+
+  const closeSidebar = () => {
+    setSidebarOpen(false)
+
+    if (isMobileViewport()) return
+
+    setSidebarCollapsed(true)
+    try {
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, '1')
+    } catch {
+      return
+    }
+  }
+
+  const openSidebar = () => {
+    setSidebarCollapsed(false)
+    setSidebarOpen(true)
+    try {
+      window.localStorage.removeItem(SIDEBAR_COLLAPSED_KEY)
+    } catch {
+      return
+    }
+  }
 
   useEffect(() => {
     const click = (event: MouseEvent) => {
@@ -274,16 +308,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="app-shell">
-      {sidebarOpen ? <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} /> : null}
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <Link to="/" className="logo">
-          <span className="logo-mark">CO</span>
-          <span>
-            <span className="logo-name">Closer OS</span>
-            <span className="logo-sub">CRM</span>
-          </span>
-        </Link>
+    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {sidebarOpen ? <div className="sidebar-backdrop" onClick={closeSidebar} /> : null}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`} aria-label="Menu principal">
+        <div className="sidebar-head">
+          <Link to="/" className="logo" onClick={() => setSidebarOpen(false)}>
+            <span className="logo-mark">CO</span>
+            <span>
+              <span className="logo-name">Closer OS</span>
+              <span className="logo-sub">CRM</span>
+            </span>
+          </Link>
+          <button className="icon-btn sidebar-close" onClick={closeSidebar} aria-label="Fechar menu" title="Fechar menu">
+            <Icon name="close" size={15} />
+          </button>
+        </div>
         <nav className="nav">
           {visibleGroups.map((group) => (
             <div key={group.label}>
@@ -310,7 +349,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="main-shell">
         <header className="topbar">
           <div className="topbar-left">
-            <button className="icon-btn mobile-menu" onClick={() => setSidebarOpen(true)} aria-label="Abrir menu"><Icon name="menu" /></button>
+            <button className={`icon-btn mobile-menu ${sidebarCollapsed ? 'always-visible' : ''}`} onClick={openSidebar} aria-label="Abrir menu"><Icon name="menu" /></button>
             <div>
               <h1>{meta.title}</h1>
               <div className="sub">{meta.subtitle}</div>

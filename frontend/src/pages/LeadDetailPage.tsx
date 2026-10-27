@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, apiMessage, download } from '@/lib/api'
-import { useApi } from '@/lib/hooks'
+import { useApi, usePaymentSources } from '@/lib/hooks'
 import { useAuth } from '@/auth/AuthProvider'
 import { CALL_STATUS_LABELS, CONTRACT_STATUS, INTERACTION_KINDS, PAYMENT_METHODS, PAYMENT_STATUS, PROPOSAL_STATUS, STAGES, STAGE_LABELS, TEMPERATURE_LABELS } from '@/lib/constants'
-import { date, dateTime, money, relative, whatsappLink } from '@/lib/format'
+import { date, dateTime, money, relative, today, whatsappLink } from '@/lib/format'
 import type { Call, Contract, Lead, Payment, Proposal } from '@/lib/types'
 import {
   Avatar, Badge, Button, ConfirmDialog, EmptyState, ErrorState, Field, Icon, IconButton,
@@ -35,12 +35,15 @@ export function LeadDetailPage() {
   const { user } = useAuth()
   const { notify } = useToast()
   const { data, loading, error, reload } = useApi<LeadResponse>(id ? `/leads/${id}` : null)
+  const { sources } = usePaymentSources()
   const [tab, setTab] = useState('overview')
   const [editOpen, setEditOpen] = useState(false)
   const [moveOpen, setMoveOpen] = useState(false)
   const [moveStage, setMoveStage] = useState('')
   const [moveReason, setMoveReason] = useState('')
   const [moveTicket, setMoveTicket] = useState('')
+  const [moveCommission, setMoveCommission] = useState('')
+  const [moveCommissionAmount, setMoveCommissionAmount] = useState('')
   const [moving, setMoving] = useState(false)
 
   const [interactionKind, setInteractionKind] = useState('nota')
@@ -58,6 +61,13 @@ export function LeadDetailPage() {
   const [installmentFirst, setInstallmentFirst] = useState('')
   const [installmentInterval, setInstallmentInterval] = useState('30')
   const [creatingInstallments, setCreatingInstallments] = useState(false)
+  const [saleOpen, setSaleOpen] = useState(false)
+  const [saleForm, setSaleForm] = useState({
+    amount: '', source: 'pix', status: 'paid', due_at: today(),
+    commission_percentage: '', commission_amount: '', next_action: '', next_action_at: '', notes: '',
+  })
+  const [savingSale, setSavingSale] = useState(false)
+  const [saleError, setSaleError] = useState('')
   const [confirmDeleteAttachment, setConfirmDeleteAttachment] = useState<string | null>(null)
   const [deletingAttachment, setDeletingAttachment] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -68,7 +78,10 @@ export function LeadDetailPage() {
   const proposalTotal = useMemo(() => (lead?.proposals || []).reduce((sum, proposal) => sum + Number(proposal.total || 0), 0), [lead])
   const paidTotal = useMemo(() => (lead?.payments || []).filter((payment) => payment.status === 'paid').reduce((sum, payment) => sum + Number(payment.amount || 0), 0), [lead])
   const pendingTotal = useMemo(() => (lead?.payments || []).filter((payment) => payment.status !== 'paid' && payment.status !== 'cancelled').reduce((sum, payment) => sum + Number(payment.amount || 0), 0), [lead])
+  const cashInTotal = useMemo(() => (lead?.payments || []).filter((payment) => payment.status === 'paid' && payment.enters_cash !== false).reduce((sum, payment) => sum + Number(payment.amount || 0), 0), [lead])
+  const cashOutTotal = useMemo(() => (lead?.payments || []).filter((payment) => payment.status === 'paid' && payment.enters_cash === false).reduce((sum, payment) => sum + Number(payment.amount || 0), 0), [lead])
   const pendingReminders = useMemo(() => (lead?.reminders || []).filter((reminder) => reminder.status === 'pendente'), [lead])
+  const selectedSource = sources.find((source) => source.slug === saleForm.source) || null
   const allowedStages = user?.role === 'sdr'
     ? STAGES.filter((stage) => ['lead_agendado', 'fup', 'remarcado', 'mal_qualificado'].includes(stage.value))
     : STAGES
@@ -83,6 +96,8 @@ export function LeadDetailPage() {
     setMoveStage(lead.stage)
     setMoveReason('')
     setMoveTicket(lead.ticket_fechado ? String(lead.ticket_fechado) : lead.valor_negociado ? String(lead.valor_negociado) : '')
+    setMoveCommission(lead.commission_percentage !== null && lead.commission_percentage !== undefined ? String(lead.commission_percentage) : '')
+    setMoveCommissionAmount(lead.commission_amount !== null && lead.commission_amount !== undefined ? String(lead.commission_amount) : '')
     setMoveOpen(true)
   }
 
@@ -102,6 +117,8 @@ export function LeadDetailPage() {
         stage: moveStage,
         reason: moveReason.trim() || null,
         ticket_fechado: moveStage === 'fechado' && moveTicket ? Number(moveTicket) : undefined,
+        commission_percentage: moveStage === 'fechado' && moveCommission ? Number(moveCommission) : undefined,
+        commission_amount: moveStage === 'fechado' && moveCommissionAmount ? Number(moveCommissionAmount) : undefined,
       })
       notify(`Lead movido para ${STAGE_LABELS[moveStage]}.`)
       setMoveOpen(false)
@@ -205,6 +222,53 @@ export function LeadDetailPage() {
       reload()
     } catch (requestError) {
       notify(apiMessage(requestError), 'error')
+    }
+  }
+
+  const openSale = () => {
+    if (!lead) return
+    setSaleForm({
+      amount: String(lead.ticket_fechado || lead.valor_negociado || lead.ticket_estimado || ''),
+      source: 'pix',
+      status: 'paid',
+      due_at: today(),
+      commission_percentage: lead.commission_percentage !== null && lead.commission_percentage !== undefined ? String(lead.commission_percentage) : '',
+      commission_amount: lead.commission_amount !== null && lead.commission_amount !== undefined ? String(lead.commission_amount) : '',
+      next_action: '',
+      next_action_at: '',
+      notes: '',
+    })
+    setSaleError('')
+    setSaleOpen(true)
+  }
+
+  const submitSale = async () => {
+    if (!lead) return
+    if (!saleForm.amount || Number(saleForm.amount) <= 0) {
+      notify('Informe o valor da venda.', 'error')
+      return
+    }
+    setSavingSale(true)
+    setSaleError('')
+    try {
+      await api.post(`/leads/${lead.id}/sale`, {
+        amount: Number(saleForm.amount),
+        source: saleForm.source,
+        status: saleForm.status,
+        due_at: saleForm.due_at,
+        commission_percentage: saleForm.commission_percentage ? Number(saleForm.commission_percentage) : null,
+        commission_amount: saleForm.commission_amount ? Number(saleForm.commission_amount) : null,
+        next_action: saleForm.next_action || null,
+        next_action_at: saleForm.next_action_at || null,
+        notes: saleForm.notes || null,
+      })
+      notify('Venda registrada com comissão, fonte e próxima ação.')
+      setSaleOpen(false)
+      reload()
+    } catch (requestError) {
+      setSaleError(apiMessage(requestError))
+    } finally {
+      setSavingSale(false)
     }
   }
 
@@ -496,7 +560,10 @@ export function LeadDetailPage() {
               <div className="kv"><span>Total recebido</span><b className="text-brand">{money(paidTotal)}</b></div>
               <div className="kv"><span>Em aberto</span><b>{money(pendingTotal)}</b></div>
               <div className="kv"><span>Saldo devedor</span><b className="text-danger">{money(lead.saldo_devedor)}</b></div>
+              <div className="kv"><span>Entrou no caixa</span><b>{money(cashInTotal)}</b></div>
+              <div className="kv"><span>Não entrou no caixa</span><b>{money(cashOutTotal)}</b></div>
               <div className="divider" />
+              <div className="kv"><span>Comissão da venda</span><b>{lead.commission_percentage || lead.commission_amount ? `${lead.commission_percentage ? `${lead.commission_percentage}%` : ''}${lead.commission_percentage && lead.commission_amount ? ' + ' : ''}${lead.commission_amount ? money(lead.commission_amount) : ''}` : '—'}</b></div>
               {commissions.length ? commissions.map((commission) => (
                 <div className="kv" key={commission.id}><span>Comissão {commission.period}</span><b>{money(commission.amount)}</b></div>
               )) : <p className="muted small">Comissões aparecem após o fechamento e cálculo.</p>}
@@ -506,12 +573,15 @@ export function LeadDetailPage() {
           <section className="panel" style={{ overflow: 'hidden' }}>
             <div className="panel-toolbar">
               <div><h3>Pagamentos e parcelas</h3><p className="panel-sub">Status de cobrança é separado de receita contratada.</p></div>
-              <Button size="sm" variant="primary" icon="plus" onClick={openInstallments}>Gerar parcelas</Button>
+              <div className="actions">
+                <Button size="sm" icon="plus" onClick={openInstallments}>Gerar parcelas</Button>
+                <Button size="sm" variant="primary" icon="money" onClick={openSale}>Registrar venda</Button>
+              </div>
             </div>
             {payments.length ? (
               <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
                 <table className="table">
-                  <thead><tr><th>Parcela</th><th>Tipo</th><th>Vencimento</th><th>Status</th><th>Método</th><th className="text-right">Valor</th><th /></tr></thead>
+                  <thead><tr><th>Parcela</th><th>Tipo</th><th>Vencimento</th><th>Status</th><th>Fonte</th><th>Caixa</th><th>Próxima ação</th><th className="text-right">Valor</th><th /></tr></thead>
                   <tbody>
                     {[...payments].sort((a, b) => a.due_at.localeCompare(b.due_at)).map((payment) => (
                       <tr key={payment.id}>
@@ -520,6 +590,8 @@ export function LeadDetailPage() {
                         <td>{date(payment.due_at)}</td>
                         <td><Badge tone={payment.status === 'paid' ? 'brand' : payment.status === 'overdue' ? 'rose' : payment.status === 'cancelled' ? 'neutral' : 'amber'}>{PAYMENT_STATUS[payment.status] || payment.status}</Badge></td>
                         <td>{payment.method ? PAYMENT_METHODS[payment.method] || payment.method : '—'}</td>
+                        <td>{payment.enters_cash === false ? <Badge tone="neutral">Não entra</Badge> : <Badge tone="green">Entra</Badge>}</td>
+                        <td className="cell-sub">{payment.next_action || '—'}</td>
                         <td className="text-right mono">{money(payment.amount)}</td>
                         <td>{payment.status !== 'paid' && payment.status !== 'cancelled' ? <Button size="sm" onClick={() => markPaid(payment)}>Receber</Button> : null}</td>
                       </tr>
@@ -571,7 +643,13 @@ export function LeadDetailPage() {
               {allowedStages.map((stage) => <option key={stage.value} value={stage.value}>{stage.label}</option>)}
             </Select>
           </Field>
-          {moveStage === 'fechado' ? <Field label="Valor fechado"><Input type="number" min={0} step="0.01" value={moveTicket} onChange={(event) => setMoveTicket(event.target.value)} placeholder="0,00" /></Field> : null}
+          {moveStage === 'fechado' ? (
+            <>
+              <Field label="Valor fechado"><Input type="number" min={0} step="0.01" value={moveTicket} onChange={(event) => setMoveTicket(event.target.value)} placeholder="0,00" /></Field>
+              <Field label="Comissão (%)" hint="Percentual combinado na venda."><Input type="number" min={0} max={100} step="0.01" value={moveCommission} onChange={(event) => setMoveCommission(event.target.value)} placeholder="10" /></Field>
+              <Field label="Comissão fixa (R$)"><Input type="number" min={0} step="0.01" value={moveCommissionAmount} onChange={(event) => setMoveCommissionAmount(event.target.value)} placeholder="0,00" /></Field>
+            </>
+          ) : null}
           {moveStage === 'loss' || moveStage === 'mal_qualificado' ? <Field label="Motivo obrigatório" required><Textarea value={moveReason} onChange={(event) => setMoveReason(event.target.value)} placeholder="Descreva o motivo para relatórios e auditoria." /></Field> : null}
           {user?.role === 'sdr' ? <div className="callout warn">Como SDR, você só pode mover para Lead Agendado, FUP, Remarcado ou Mal Qualificado.</div> : null}
         </div>
@@ -590,6 +668,40 @@ export function LeadDetailPage() {
           <Field label="Primeiro vencimento" required><Input type="date" value={installmentFirst} onChange={(event) => setInstallmentFirst(event.target.value)} /></Field>
           <Field label="Intervalo (dias)"><Input type="number" min={1} max={365} value={installmentInterval} onChange={(event) => setInstallmentInterval(event.target.value)} /></Field>
         </div>
+      </Modal>
+
+      <Modal
+        open={saleOpen}
+        onClose={() => { if (!savingSale) setSaleOpen(false) }}
+        title="Registrar venda"
+        subtitle="Comissão da venda, fonte de pagamento e próxima ação combinada com o cliente."
+        footer={<><Button onClick={() => setSaleOpen(false)}>Cancelar</Button><Button variant="primary" loading={savingSale} onClick={submitSale}>Registrar venda</Button></>}
+      >
+        {saleError ? <div className="login-error" style={{ marginBottom: 13 }}>{saleError}</div> : null}
+        <div className="form-grid">
+          <Field label="Valor da venda" required><Input type="number" min={0.01} step="0.01" value={saleForm.amount} onChange={(event) => setSaleForm({ ...saleForm, amount: event.target.value })} placeholder="0,00" /></Field>
+          <Field label="Fonte do pagamento" required>
+            <Select value={saleForm.source} onChange={(event) => setSaleForm({ ...saleForm, source: event.target.value })}>
+              {sources.length ? sources.map((source) => (
+                <option key={source.slug} value={source.slug}>{source.name}{source.enters_cash ? ' (entra no caixa)' : ' (não entra no caixa)'}</option>
+              )) : Object.entries(PAYMENT_METHODS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Status"><Select value={saleForm.status} onChange={(event) => setSaleForm({ ...saleForm, status: event.target.value })}><option value="paid">Pago</option><option value="pending">Pendente</option></Select></Field>
+          <Field label="Vencimento" required><Input type="date" value={saleForm.due_at} onChange={(event) => setSaleForm({ ...saleForm, due_at: event.target.value })} /></Field>
+          <Field label="Comissão (%)" hint="Percentual sobre o valor da venda."><Input type="number" min={0} max={100} step="0.01" value={saleForm.commission_percentage} onChange={(event) => setSaleForm({ ...saleForm, commission_percentage: event.target.value })} placeholder="10" /></Field>
+          <Field label="Comissão fixa (R$)" hint="Valor adicional somado ao percentual."><Input type="number" min={0} step="0.01" value={saleForm.commission_amount} onChange={(event) => setSaleForm({ ...saleForm, commission_amount: event.target.value })} placeholder="0,00" /></Field>
+          <Field label="Próxima ação" className="span-2" hint="O que falar com o cliente na próxima interação."><Textarea rows={2} value={saleForm.next_action} onChange={(event) => setSaleForm({ ...saleForm, next_action: event.target.value })} placeholder="Ex.: falar sobre a segunda parcela e confirmar o pix da entrada." /></Field>
+          <Field label="Data da próxima ação"><Input type="date" value={saleForm.next_action_at} onChange={(event) => setSaleForm({ ...saleForm, next_action_at: event.target.value })} /></Field>
+          <Field label="Observações"><Input value={saleForm.notes} onChange={(event) => setSaleForm({ ...saleForm, notes: event.target.value })} placeholder="Opcional" /></Field>
+        </div>
+        {selectedSource ? (
+          <div className={`callout ${selectedSource.enters_cash ? '' : 'warn'}`} style={{ marginTop: 12 }}>
+            <strong>{selectedSource.name}:</strong> {selectedSource.enters_cash
+              ? 'entra no caixa. O valor será somado ao caixa recebido.'
+              : 'não entra no caixa. O valor fica registrado como boleto e não soma no caixa recebido.'}
+          </div>
+        ) : null}
       </Modal>
 
       <ConfirmDialog open={Boolean(confirmDeleteAttachment)} title="Remover anexo" message="O arquivo será excluído permanentemente do armazenamento local. Esta ação não pode ser desfeita." confirmLabel="Remover" loading={deletingAttachment} onClose={() => setConfirmDeleteAttachment(null)} onConfirm={removeAttachment} />

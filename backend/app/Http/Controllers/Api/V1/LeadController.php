@@ -104,9 +104,14 @@ class LeadController extends Controller
         $data = $request->validated();
         $user = $request->user();
 
-        if (! $user->isAdmin() && ! $user->isManager()) {
-            $data['closer_id'] = $user->isCloser() ? $user->getKey() : ($data['closer_id'] ?? null);
-            $data['pre_sales_id'] = $user->isSdr() ? $user->getKey() : ($data['pre_sales_id'] ?? null);
+        if ($user->isAdmin() || $user->isManager()) {
+            $data['closer_id'] = $data['closer_id'] ?? $user->getKey();
+        } else {
+            $data['closer_id'] = $user->getKey();
+        }
+
+        if ($user->isSdr()) {
+            $data['pre_sales_id'] = $user->getKey();
         }
 
         $lead = $this->leads->create($user, $data, $request);

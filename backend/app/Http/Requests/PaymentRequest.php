@@ -24,8 +24,10 @@ class PaymentRequest extends FormRequest
             'due_at' => ['required', 'date'],
             'paid_at' => ['nullable', 'date'],
             'status' => ['nullable', Rule::in(['pending', 'paid', 'overdue', 'cancelled'])],
-            'method' => ['nullable', Rule::in(['pix', 'boleto', 'credit_card', 'debit_card', 'transfer', 'cash', 'other'])],
+            'method' => ['nullable', 'string', Rule::exists('payment_sources', 'slug')->where('active', true)],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'next_action' => ['nullable', 'string', 'max:2000'],
+            'next_action_at' => ['nullable', 'date'],
         ];
     }
 }

@@ -8,7 +8,7 @@ export function LoginPage() {
   const { login, authenticated, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [email, setEmail] = useState('admin@closer.local')
+  const [email, setEmail] = useState('1thalisgabriel1@gmail.com')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -84,9 +84,9 @@ export function LoginPage() {
             <Button type="submit" variant="primary" size="lg" className="btn-block" loading={submitting}>Entrar</Button>
           </form>
           <div className="login-demo">
-            <b>Acesso de demonstração local</b><br />
-            <code>admin@closer.local</code><br />
-            Senha definida em <code>DEMO_ADMIN_PASSWORD</code> no backend (padrão <code>Closer@2026!</code>).
+            <b>Administrador da operação</b><br />
+            <code>1thalisgabriel1@gmail.com</code><br />
+            Cada usuário enxerga somente os registros pelos quais é responsável.
           </div>
         </div>
       </main>

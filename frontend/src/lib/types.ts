@@ -44,6 +44,15 @@ export interface Niche {
   leads_count?: number
 }
 
+export interface PaymentSource {
+  id: string
+  slug: string
+  name: string
+  enters_cash: boolean
+  active: boolean
+  position: number
+}
+
 export interface Lead {
   id: string
   name: string
@@ -76,6 +85,8 @@ export interface Lead {
   disqualify_reason?: string | null
   saldo_devedor?: string | number | null
   notes?: string | null
+  commission_percentage?: string | number | null
+  commission_amount?: string | number | null
   created_at: string
   updated_at: string
   interactions?: LeadInteraction[]
@@ -232,7 +243,10 @@ export interface Payment {
   paid_at?: string | null
   status: 'pending' | 'paid' | 'overdue' | 'cancelled'
   method?: string | null
+  enters_cash?: boolean
   notes?: string | null
+  next_action?: string | null
+  next_action_at?: string | null
   created_at: string
 }
 

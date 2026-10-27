@@ -42,8 +42,15 @@ self-signed serve apenas para o acesso direto na porta 8453.
 
 ### Acesso
 
-- E-mail: `admin@closer.local`
-- Senha padrão: `Closer@2026!` (configurável por `DEMO_ADMIN_PASSWORD` antes do seed)
+- E-mail: `1thalisgabriel1@gmail.com`
+- Senha: `123456`
+- Nome: `Thalis Gomes` · perfil `admin` (administrador)
+
+O administrador cria os demais usuários em **Usuários → Novo usuário**. Cada usuário
+vê apenas os registros pelos quais é responsável (leads em que é closer ou
+pré-vendas, próprias calls, lembretes, pagamentos e comissões). Nenhum perfil,
+inclusive o administrador, enxerga dados de outro usuário; o admin continua
+gerenciando usuários, equipes, nichos, regras de comissão e configurações.
 
 Em produção o banco contém apenas o admin: o `DemoDataSeeder` roda somente no
 ambiente `local`, então leads, scripts, objeções, comissões e demais dados de
@@ -90,6 +97,29 @@ cd frontend && npx vite build --outDir /tmp/closer-dist --emptyOutDir
 scp -r /tmp/closer-dist/* ubuntu@<vps>:/tmp/closer-dist
 scp -r /tmp/closer-dist/* ubuntu@<vps>:/opt/sources/closer/backend/public/
 ```
+
+## Nichos e fontes de pagamento
+
+- Nichos são dados do banco (`niches`), configuráveis pelo admin em **Nichos**.
+  O conjunto padrão inclui **Mercado Livre**, **Mente Renovada**, **Visagismo** e
+  **Construção Civil** e é criado pela migration `2026_10_27_000400`.
+- Fontes de pagamento ficam em `payment_sources` e definem se o lançamento
+  entra no caixa: **Boleto** não entra, **Pix**, **Cartão de crédito**,
+  **Cartão de débito** e **Contrato com parcelas** entram.
+
+## Registrar venda
+
+Na aba **Financeiro** da ficha do lead, o botão **Registrar venda** fecha a
+oportunidade e registra em um único fluxo:
+
+- valor da venda (alimenta `ticket_fechado`);
+- comissão combinada (percentual e/ou valor fixo), que sobrescreve a regra de
+  comissão do período e é congelada no snapshot;
+- fonte do pagamento, com a regra de entrada em caixa exibida na tela;
+- próxima ação (o que falar com o cliente), que também vira lembrete com data;
+- status e vencimento do lançamento.
+
+Endpoint: `POST /api/v1/leads/{lead}/sale`.
 
 ## Autenticação e segurança
 

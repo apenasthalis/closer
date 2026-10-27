@@ -12,7 +12,8 @@ class Payment extends Model
 
     protected $fillable = [
         'lead_id', 'contract_id', 'proposal_id', 'kind', 'installment_number',
-        'amount', 'due_at', 'paid_at', 'status', 'method', 'notes', 'created_by',
+        'amount', 'due_at', 'paid_at', 'status', 'method', 'enters_cash', 'notes',
+        'next_action', 'next_action_at', 'created_by',
     ];
 
     protected function casts(): array
@@ -21,7 +22,9 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'due_at' => 'date',
             'paid_at' => 'datetime',
+            'next_action_at' => 'datetime',
             'installment_number' => 'integer',
+            'enters_cash' => 'boolean',
         ];
     }
 

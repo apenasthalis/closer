@@ -41,6 +41,8 @@ class LeadRequest extends FormRequest
             'loss_reason' => ['nullable', 'string', 'max:2000'],
             'disqualify_reason' => ['nullable', 'string', 'max:2000'],
             'saldo_devedor' => ['nullable', 'numeric', 'min:0'],
+            'commission_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'commission_amount' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
             'parcelas' => ['nullable', 'array'],
             'custom_fields' => ['nullable', 'array'],
             'notes' => ['nullable', 'string', 'max:20000'],

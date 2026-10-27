@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, apiMessage } from './api'
-import type { Niche, Team, User } from './types'
+import type { Niche, PaymentSource, Team, User } from './types'
 
 export function useApi<T>(url: string | null, params?: Record<string, unknown>, enabled = true) {
   const [data, setData] = useState<T | null>(null)
@@ -89,6 +89,31 @@ export function useInterval(callback: () => void, delay: number | null) {
     const interval = window.setInterval(() => saved.current(), delay)
     return () => window.clearInterval(interval)
   }, [delay])
+}
+
+export function usePaymentSources() {
+  const [sources, setSources] = useState<PaymentSource[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    api.get('/payment-sources')
+      .then((response) => {
+        if (active) setSources(response.data.data || [])
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const bySlug = (slug?: string | null) => sources.find((source) => source.slug === slug) || null
+
+  return { sources, loading, bySlug }
 }
 
 export function useLeadOptions(enabled = true) {

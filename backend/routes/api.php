@@ -12,10 +12,12 @@ use App\Http\Controllers\Api\V1\LeadController;
 use App\Http\Controllers\Api\V1\NicheController;
 use App\Http\Controllers\Api\V1\ObjectionController;
 use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PaymentSourceController;
 use App\Http\Controllers\Api\V1\PlaybookController;
 use App\Http\Controllers\Api\V1\ProposalController;
 use App\Http\Controllers\Api\V1\ReminderController;
 use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\ScriptController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\TeamController;
@@ -51,6 +53,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/leads/{lead}/proposals', [ProposalController::class, 'store'])->name('leads.proposals.store');
         Route::post('/leads/{lead}/contracts', [ContractController::class, 'store'])->name('leads.contracts.store');
         Route::post('/leads/{lead}/payments/installments', [PaymentController::class, 'createInstallments'])->name('leads.payments.installments');
+        Route::post('/leads/{lead}/sale', [SaleController::class, 'store'])->name('leads.sale.store');
 
         Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders.index');
         Route::post('/reminders', [ReminderController::class, 'store'])->name('reminders.store');
@@ -85,6 +88,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::patch('/payments/{payment}/status', [PaymentController::class, 'updateStatus'])->name('payments.status');
         Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
+
+        Route::get('/payment-sources', [PaymentSourceController::class, 'index'])->name('payment_sources.index');
 
         Route::get('/commissions', [CommissionController::class, 'index'])->name('commissions.index');
         Route::post('/commissions/calculate', [CommissionController::class, 'calculate'])->name('commissions.calculate');

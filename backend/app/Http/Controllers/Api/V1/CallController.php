@@ -35,18 +35,11 @@ class CallController extends Controller
         $user = $request->user();
         $query = Call::query()
             ->with(['lead:id,name,company,stage', 'closer:id,name'])
+            ->where('closer_id', $user->getKey())
             ->when($filters['lead_id'] ?? null, fn ($builder, $id) => $builder->where('lead_id', $id))
             ->when($filters['closer_id'] ?? null, fn ($builder, $id) => $builder->where('closer_id', $id))
             ->when($filters['status'] ?? null, fn ($builder, $status) => $builder->where('status', $status))
             ->when($filters['analysis_status'] ?? null, fn ($builder, $status) => $builder->where('analysis_status', $status));
-
-        if (! $user->isAdmin()) {
-            if ($user->isManager() && $user->team_id) {
-                $query->whereHas('closer', fn ($builder) => $builder->where('team_id', $user->team_id));
-            } else {
-                $query->where('closer_id', $user->getKey());
-            }
-        }
 
         return response()->json($query->latest('started_at')->paginate(50)->withQueryString());
     }
@@ -56,9 +49,7 @@ class CallController extends Controller
         $data = $request->validated();
         $user = $request->user();
 
-        if (! $user->isAdmin() && ! $user->isManager()) {
-            $data['closer_id'] = $user->getKey();
-        }
+        $data['closer_id'] = $user->getKey();
 
         if (! empty($data['lead_id'])) {
             $this->authorizeLead($request, $data['lead_id']);
@@ -105,11 +96,7 @@ class CallController extends Controller
     {
         $this->authorizeCall($request, $call);
         $data = $request->validated();
-        unset($data['closer_id']);
-
-        if (! $request->user()->isAdmin() && ! $request->user()->isManager()) {
-            unset($data['lead_id']);
-        }
+        unset($data['closer_id'], $data['lead_id']);
 
         if (! empty($data['lead_id'])) {
             $this->authorizeLead($request, $data['lead_id']);
@@ -183,17 +170,7 @@ class CallController extends Controller
 
     private function authorizeCall(Request $request, Call $call): void
     {
-        $user = $request->user();
-
-        if ($user->isAdmin()) {
-            return;
-        }
-
-        if ($user->isManager() && $user->team_id) {
-            abort_unless($call->closer?->team_id === $user->team_id, 403);
-        } else {
-            abort_unless($call->closer_id === $user->getKey(), 403);
-        }
+        abort_unless($call->closer_id === $request->user()->getKey(), 403, 'Call não acessível.');
     }
 
     private function authorizeLead(Request $request, string $leadId): void

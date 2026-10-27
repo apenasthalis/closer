@@ -126,7 +126,7 @@ class User extends Authenticatable
             'view_financials' => $this->canViewFinancials(),
             'approve_commissions' => $this->canApproveCommissions(),
             'manage_playbooks' => $this->canManagePlaybooks(),
-            'view_all_leads' => $this->isAdmin() || $this->isManager(),
+            'view_all_leads' => false,
             'control_docker' => $this->isAdmin() && app()->environment(['local', 'testing']),
         ];
     }

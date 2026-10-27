@@ -22,6 +22,8 @@ class UpdateLeadStageRequest extends FormRequest
             'position' => ['nullable', 'integer', 'min:0'],
             'ticket_fechado' => ['nullable', 'numeric', 'min:0'],
             'valor_negociado' => ['nullable', 'numeric', 'min:0'],
+            'commission_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'commission_amount' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
             'next_action_at' => ['nullable', 'date'],
             'next_steps' => ['nullable', 'array', 'max:20'],
             'next_steps.*' => ['string', 'max:300'],

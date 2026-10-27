@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\CommissionRule;
 use App\Models\IntegrationSetting;
 use App\Models\Niche;
+use App\Models\PaymentSource;
 use App\Models\Playbook;
 use App\Models\Team;
 use App\Models\User;
@@ -45,6 +46,29 @@ class CoreSeeder extends Seeder
             $thalis?->forceFill(['role' => User::ROLE_ADMIN, 'team_id' => $team->getKey()])->save();
         }
 
+        $owner = User::query()->where('email', '1thalisgabriel1@gmail.com')->first();
+
+        if (! $owner) {
+            $owner = User::query()->create([
+                'name' => 'Thalis Gomes',
+                'email' => '1thalisgabriel1@gmail.com',
+                'password' => '123456',
+                'role' => User::ROLE_ADMIN,
+                'active' => true,
+                'phone' => null,
+                'avatar_color' => '#3fa373',
+                'team_id' => $team->getKey(),
+                'email_verified_at' => now(),
+            ]);
+        } else {
+            $owner->forceFill([
+                'name' => 'Thalis Gomes',
+                'role' => User::ROLE_ADMIN,
+                'active' => true,
+                'team_id' => $owner->team_id ?? $team->getKey(),
+            ])->save();
+        }
+
         if (! User::query()->where('role', User::ROLE_MANAGER)->exists()) {
             User::query()->where('email', 'bruna@closer.local')->first()
                 ?->forceFill(['role' => User::ROLE_MANAGER, 'team_id' => $team->getKey()])->save();
@@ -68,6 +92,10 @@ class CoreSeeder extends Seeder
 
         foreach ($niches as $niche) {
             Niche::query()->firstOrCreate(['slug' => $niche['slug']], $niche + ['active' => true]);
+        }
+
+        foreach (PaymentSource::defaultSources() as $source) {
+            PaymentSource::query()->firstOrCreate(['slug' => $source['slug']], $source + ['active' => true]);
         }
 
         if (! CommissionRule::query()->where('active', true)->exists()) {

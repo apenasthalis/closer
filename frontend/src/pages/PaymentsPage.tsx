@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, apiMessage } from '@/lib/api'
-import { useApi, useLeadOptions } from '@/lib/hooks'
+import { useApi, useLeadOptions, usePaymentSources } from '@/lib/hooks'
 import { useAuth } from '@/auth/AuthProvider'
 import { PAYMENT_METHODS, PAYMENT_STATUS } from '@/lib/constants'
 import { date, money, today } from '@/lib/format'
@@ -13,13 +13,14 @@ import {
 
 interface PaymentResponse {
   data: Payment[]
-  summary: { pending: number; paid: number; overdue: number }
+  summary: { pending: number; paid: number; overdue: number; cash_in?: number; cash_out?: number }
 }
 
 export function PaymentsPage() {
   const { user } = useAuth()
   const { notify } = useToast()
   const leads = useLeadOptions()
+  const { sources } = usePaymentSources()
   const [status, setStatus] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -31,6 +32,8 @@ export function PaymentsPage() {
   const [method, setMethod] = useState('pix')
   const [paymentStatus, setPaymentStatus] = useState('pending')
   const [notes, setNotes] = useState('')
+  const [nextAction, setNextAction] = useState('')
+  const [nextActionAt, setNextActionAt] = useState('')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
   const [deleting, setDeleting] = useState<Payment | null>(null)
@@ -42,12 +45,15 @@ export function PaymentsPage() {
   })
   const payments = data?.data || []
   const canDelete = user?.role === 'admin'
+  const selectedSource = sources.find((source) => source.slug === method) || null
 
   const summary = useMemo(() => ({
     paid: payments.filter((payment) => payment.status === 'paid').reduce((sum, payment) => sum + Number(payment.amount), 0),
     pending: payments.filter((payment) => payment.status === 'pending').reduce((sum, payment) => sum + Number(payment.amount), 0),
     overdue: payments.filter((payment) => payment.status === 'pending' && new Date(payment.due_at).getTime() < Date.now()).reduce((sum, payment) => sum + Number(payment.amount), 0),
     total: payments.reduce((sum, payment) => sum + Number(payment.amount), 0),
+    cashIn: payments.filter((payment) => payment.status === 'paid' && payment.enters_cash !== false).reduce((sum, payment) => sum + Number(payment.amount), 0),
+    cashOut: payments.filter((payment) => payment.status === 'paid' && payment.enters_cash === false).reduce((sum, payment) => sum + Number(payment.amount), 0),
   }), [payments])
 
   const create = async () => {
@@ -62,11 +68,15 @@ export function PaymentsPage() {
         status: paymentStatus,
         method,
         notes: notes || null,
+        next_action: nextAction || null,
+        next_action_at: nextActionAt || null,
       })
       notify('Pagamento registrado.')
       setOpen(false)
       setAmount('')
       setNotes('')
+      setNextAction('')
+      setNextActionAt('')
       setLeadId('')
       reload()
     } catch (requestError) {
@@ -116,8 +126,8 @@ export function PaymentsPage() {
       <div className="kpi-row four">
         <Stat label="Total na visão" value={money(summary.total, true)} caption={`${payments.length} lançamento(s)`} icon="payments" tone="blue" />
         <Stat label="Recebido" value={money(summary.paid, true)} caption="status pago" icon="checkCircle" tone="green" />
-        <Stat label="Pendente" value={money(summary.pending, true)} caption="a receber" icon="clock" tone="amber" />
-        <Stat label="Vencido" value={money(summary.overdue, true)} caption="pendente com data passada" icon="alert" tone="rose" />
+        <Stat label="Entrou no caixa" value={money(summary.cashIn, true)} caption="pix, cartão e contratos" icon="money" tone="green" />
+        <Stat label="Não entrou no caixa" value={money(summary.cashOut, true)} caption="boleto e alikeis" icon="alert" tone="amber" />
       </div>
 
       {error ? <ErrorState message={error} onRetry={reload} /> : loading && !data ? <LoadingState /> : !payments.length ? (
@@ -125,7 +135,7 @@ export function PaymentsPage() {
       ) : (
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Lead</th><th>Parcela</th><th>Tipo</th><th>Vencimento</th><th>Status</th><th>Método</th><th>Contrato</th><th className="text-right">Valor</th><th /></tr></thead>
+            <thead><tr><th>Lead</th><th>Parcela</th><th>Tipo</th><th>Vencimento</th><th>Status</th><th>Fonte</th><th>Caixa</th><th>Contrato</th><th className="text-right">Valor</th><th /></tr></thead>
             <tbody>
               {payments.map((payment) => (
                 <tr key={payment.id}>
@@ -139,6 +149,7 @@ export function PaymentsPage() {
                     </Select>
                   </td>
                   <td>{payment.method ? PAYMENT_METHODS[payment.method] || payment.method : '—'}</td>
+                  <td>{payment.enters_cash === false ? <Badge tone="neutral">Não entra</Badge> : <Badge tone="green">Entra</Badge>}</td>
                   <td className="mono">{payment.contract?.number || '—'}</td>
                   <td className="text-right mono">{money(payment.amount)}</td>
                   <td>{canDelete ? <IconButton icon="trash" label="Remover pagamento" onClick={() => setDeleting(payment)} /> : <Badge tone={payment.status === 'paid' ? 'brand' : 'neutral'}>{PAYMENT_STATUS[payment.status]}</Badge>}</td>
@@ -162,8 +173,16 @@ export function PaymentsPage() {
           <Field label="Vencimento" required><Input type="date" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /></Field>
           <Field label="Tipo"><Select value={kind} onChange={(event) => setKind(event.target.value)}><option value="installment">Parcela</option><option value="entry">Entrada</option><option value="recurring">Recorrente</option><option value="other">Outro</option></Select></Field>
           <Field label="Status"><Select value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)}>{Object.entries(PAYMENT_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field>
-          <Field label="Método"><Select value={method} onChange={(event) => setMethod(event.target.value)}>{Object.entries(PAYMENT_METHODS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field>
-          <Field label="Observações" className="span-2"><Textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></Field>
+          <Field label="Fonte" hint={selectedSource ? (selectedSource.enters_cash ? 'Entra no caixa.' : 'Não entra no caixa.') : undefined}>
+            <Select value={method} onChange={(event) => setMethod(event.target.value)}>
+              {sources.length ? sources.map((source) => (
+                <option key={source.slug} value={source.slug}>{source.name}{source.enters_cash ? ' (entra no caixa)' : ' (não entra no caixa)'}</option>
+              )) : Object.entries(PAYMENT_METHODS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Próxima ação" className="span-2" hint="O que falar com o cliente sobre este lançamento."><Textarea rows={2} value={nextAction} onChange={(event) => setNextAction(event.target.value)} placeholder="Ex.: cobrar o boleto e confirmar a data de pagamento." /></Field>
+          <Field label="Data da próxima ação"><Input type="date" value={nextActionAt} onChange={(event) => setNextActionAt(event.target.value)} /></Field>
+          <Field label="Observações"><Textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></Field>
         </div>
       </Modal>
 

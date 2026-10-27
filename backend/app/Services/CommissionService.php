@@ -50,8 +50,11 @@ class CommissionService
 
         return DB::transaction(function () use ($lead, $period) {
             $rule = $this->ruleFor($lead);
+            $manualPercentage = $lead->commission_percentage !== null ? (float) $lead->commission_percentage : null;
+            $manualAmount = $lead->commission_amount !== null ? (float) $lead->commission_amount : null;
+            $hasManual = $manualPercentage !== null || $manualAmount !== null;
 
-            if (! $rule || ($rule->percentage === null && $rule->fixed_amount === null)) {
+            if (! $hasManual && (! $rule || ($rule->percentage === null && $rule->fixed_amount === null))) {
                 return null;
             }
 
@@ -72,17 +75,18 @@ class CommissionService
                 ->sum('amount');
 
             $saleAmount = (float) ($lead->ticket_fechado ?? 0);
-            $basisAmount = $rule->basis === 'received' ? $received : $saleAmount;
-            $amount = ($rule->percentage !== null ? $basisAmount * ((float) $rule->percentage / 100) : 0)
-                + (float) ($rule->fixed_amount ?? 0);
+            $basisAmount = $rule?->basis === 'received' ? $received : $saleAmount;
+            $percentage = $hasManual ? $manualPercentage : ($rule?->percentage !== null ? (float) $rule->percentage : null);
+            $fixedAmount = $hasManual ? $manualAmount : ($rule?->fixed_amount !== null ? (float) $rule->fixed_amount : null);
+            $amount = ($percentage !== null ? $basisAmount * ($percentage / 100) : 0) + (float) ($fixedAmount ?? 0);
 
             $snapshot = [
-                'rule_id' => $rule->getKey(),
-                'name' => $rule->name,
-                'scope' => $rule->scope,
-                'percentage' => $rule->percentage,
-                'fixed_amount' => $rule->fixed_amount,
-                'basis' => $rule->basis,
+                'rule_id' => $rule?->getKey(),
+                'name' => $hasManual ? 'Comissão informada na venda' : ($rule?->name ?? 'Comissão padrão'),
+                'scope' => $hasManual ? 'manual' : ($rule?->scope ?? 'global'),
+                'percentage' => $percentage,
+                'fixed_amount' => $fixedAmount,
+                'basis' => $rule?->basis ?? 'contracted',
                 'captured_at' => now()->toIso8601String(),
             ];
 
@@ -93,12 +97,12 @@ class CommissionService
                     'period' => $period,
                 ],
                 [
-                    'rule_id' => $rule->getKey(),
+                    'rule_id' => $rule?->getKey(),
                     'rule_snapshot' => $snapshot,
                     'sale_amount' => $saleAmount,
                     'received_amount' => $received,
-                    'percentage' => $rule->percentage,
-                    'fixed_amount' => $rule->fixed_amount,
+                    'percentage' => $percentage,
+                    'fixed_amount' => $fixedAmount,
                     'amount' => round($amount, 2),
                     'status' => $existing?->status === 'reversed' ? 'estimated' : ($existing?->status ?? 'calculated'),
                     'calculated_at' => now(),
@@ -120,6 +124,7 @@ class CommissionService
         $end = $start->copy()->endOfMonth();
 
         $leads = Lead::query()
+            ->visibleTo($actor)
             ->where('stage', 'fechado')
             ->whereBetween('last_stage_change_at', [$start, $end])
             ->whereNotNull('closer_id')
@@ -149,7 +154,7 @@ class CommissionService
 
     public function approve(Commission $commission, User $actor): Commission
     {
-        if ($actor->getKey() === $commission->user_id) {
+        if ($actor->getKey() === $commission->user_id && ! $actor->isAdmin()) {
             throw ValidationException::withMessages(['commission' => 'Um usuário não pode aprovar a própria comissão.']);
         }
 

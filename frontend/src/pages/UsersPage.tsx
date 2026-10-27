@@ -139,7 +139,7 @@ export function UsersPage() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => { if (!saving) setOpen(false) }} title={editing ? 'Editar usuário' : 'Novo usuário'} subtitle={editing ? 'Alterações de perfil e senha são auditadas.' : 'A senha deve ter ao menos 10 caracteres, com letras e números.'} size="lg" footer={<><Button onClick={() => setOpen(false)}>Cancelar</Button><Button variant="primary" loading={saving} onClick={save}>{editing ? 'Salvar alterações' : 'Criar usuário'}</Button></>}>
+      <Modal open={open} onClose={() => { if (!saving) setOpen(false) }} title={editing ? 'Editar usuário' : 'Novo usuário'} subtitle={editing ? 'Alterações de perfil e senha são auditadas.' : 'O administrador cria novos usuários da operação.'} size="lg" footer={<><Button onClick={() => setOpen(false)}>Cancelar</Button><Button variant="primary" loading={saving} onClick={save}>{editing ? 'Salvar alterações' : 'Criar usuário'}</Button></>}>
         {error ? <div className="login-error" style={{ marginBottom: 13 }}>{error}</div> : null}
         <div className="form-grid">
           <Field label="Nome" required><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field>
@@ -148,7 +148,7 @@ export function UsersPage() {
           <Field label="Equipe"><Select value={form.team_id} onChange={(event) => setForm({ ...form, team_id: event.target.value })}><option value="">Sem equipe</option>{teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></Field>
           <Field label="Telefone"><Input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></Field>
           <Field label="Status"><Select value={form.active} onChange={(event) => setForm({ ...form, active: event.target.value })}><option value="1">Ativo</option><option value="0">Inativo</option></Select></Field>
-          <Field label={editing ? 'Nova senha' : 'Senha'} required={!editing} hint={editing ? 'Deixe vazio para manter a senha atual.' : 'Mínimo de 10 caracteres com letras e números.'}><Input type="password" autoComplete="new-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></Field>
+          <Field label={editing ? 'Nova senha' : 'Senha'} required={!editing} hint={editing ? 'Deixe vazio para manter a senha atual.' : 'Mínimo de 6 caracteres.'}><Input type="password" autoComplete="new-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></Field>
           <Field label="Confirmar senha" required={!editing}><Input type="password" autoComplete="new-password" value={form.password_confirmation} onChange={(event) => setForm({ ...form, password_confirmation: event.target.value })} /></Field>
           <Field label="Cor do avatar" className="span-2">
             <div className="color-picker-row">

@@ -36,7 +36,7 @@ class CrmFlowTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_manager_sees_team_leads_and_admin_sees_all(): void
+    public function test_every_user_only_sees_own_leads_including_manager_and_admin(): void
     {
         $team = Team::query()->create(['name' => 'Comercial', 'slug' => 'comercial', 'active' => true]);
         $otherTeam = Team::query()->create(['name' => 'Outro', 'slug' => 'outro', 'active' => true]);
@@ -47,16 +47,26 @@ class CrmFlowTest extends TestCase
 
         $this->lead(['name' => 'Dentro', 'closer_id' => $closer->id]);
         $this->lead(['name' => 'Fora', 'closer_id' => $outsider->id]);
+        $this->lead(['name' => 'Do gerente', 'closer_id' => $manager->id]);
+        $this->lead(['name' => 'Do admin', 'closer_id' => $admin->id]);
 
         $this->withToken($this->token($manager))
             ->getJson('/api/v1/leads')
             ->assertOk()
-            ->assertJsonPath('total', 1);
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.name', 'Do gerente');
 
         $this->withToken($this->token($admin))
             ->getJson('/api/v1/leads')
             ->assertOk()
-            ->assertJsonPath('total', 2);
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.name', 'Do admin');
+
+        $this->withToken($this->token($outsider))
+            ->getJson('/api/v1/leads')
+            ->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.name', 'Fora');
     }
 
     public function test_stage_change_is_transactional_and_requires_loss_reason(): void

@@ -25,7 +25,6 @@ export function CommissionsPage() {
   const [tab, setTab] = useState('commissions')
   const [period, setPeriod] = useState(monthValue())
   const [status, setStatus] = useState('')
-  const [userId, setUserId] = useState('')
   const [calculating, setCalculating] = useState(false)
   const [reversing, setReversing] = useState<Commission | null>(null)
   const [reverseReason, setReverseReason] = useState('')
@@ -48,7 +47,6 @@ export function CommissionsPage() {
   const { data, loading, error, reload } = useApi<CommissionResponse>('/commissions', {
     period,
     status: status || undefined,
-    user_id: userId || undefined,
   })
   const rulesApi = useApi<{ data: CommissionRule[] }>('/commission-rules', undefined, tab === 'rules' && Boolean(user?.permissions?.view_financials))
   const rows = data?.data || []
@@ -172,12 +170,11 @@ export function CommissionsPage() {
           {tab === 'commissions' ? (
             <>
               <Select value={status} onChange={(event) => setStatus(event.target.value)} style={{ width: 150 }}><option value="">Todos os status</option>{Object.entries(COMMISSION_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select>
-              <Select value={userId} onChange={(event) => setUserId(event.target.value)} style={{ width: 155 }}><option value="">Todos os usuários</option>{users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
             </>
           ) : <Button icon="plus" disabled={user?.role !== 'admin'} onClick={() => openRule()}>Nova regra</Button>}
         </div>
         <div className="page-toolbar-right">
-          {canView && tab === 'commissions' ? <Button icon="refresh" loading={calculating} onClick={calculate}>Calcular período</Button> : null}
+          {tab === 'commissions' ? <Button icon="refresh" loading={calculating} onClick={calculate}>Calcular período</Button> : null}
         </div>
       </div>
 
@@ -210,7 +207,7 @@ export function CommissionsPage() {
                         <td className="text-right mono">{money(commission.amount)}</td>
                         <td>{canApprove && commission.status !== 'reversed' ? (
                           <div className="actions">
-                            {['estimated', 'calculated'].includes(commission.status) && commission.user_id !== user?.id ? <button className="btn btn-sm" onClick={() => approve(commission)}>Aprovar</button> : null}
+                            {['estimated', 'calculated'].includes(commission.status) && (commission.user_id !== user?.id || canApprove) ? <button className="btn btn-sm" onClick={() => approve(commission)}>Aprovar</button> : null}
                             {commission.status === 'approved' ? <button className="btn btn-sm" onClick={() => pay(commission)}>Pagar</button> : null}
                             <IconButton icon="refresh" label="Estornar comissão" onClick={() => { setReverseReason(''); setReversing(commission) }} />
                           </div>

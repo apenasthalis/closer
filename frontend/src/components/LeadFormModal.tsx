@@ -38,6 +38,8 @@ function emptyForm(defaultStage = 'lead_agendado') {
     ticket_estimado: '',
     valor_negociado: '',
     receita_prevista: '',
+    commission_percentage: '',
+    commission_amount: '',
     next_action_at: '',
     notes: '',
   }
@@ -70,6 +72,8 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
         ticket_estimado: lead.ticket_estimado ? String(lead.ticket_estimado) : '',
         valor_negociado: lead.valor_negociado ? String(lead.valor_negociado) : '',
         receita_prevista: lead.receita_prevista ? String(lead.receita_prevista) : '',
+        commission_percentage: lead.commission_percentage !== null && lead.commission_percentage !== undefined ? String(lead.commission_percentage) : '',
+        commission_amount: lead.commission_amount !== null && lead.commission_amount !== undefined ? String(lead.commission_amount) : '',
         next_action_at: toLocalInput(lead.next_action_at),
         notes: lead.notes || '',
       })
@@ -99,6 +103,8 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
       ticket_estimado: form.ticket_estimado || null,
       valor_negociado: form.valor_negociado || null,
       receita_prevista: form.receita_prevista || null,
+      commission_percentage: form.commission_percentage || null,
+      commission_amount: form.commission_amount || null,
       next_action_at: form.next_action_at || null,
       notes: form.notes || null,
     }
@@ -171,6 +177,8 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
         <Field label="Ticket estimado"><Input type="number" min={0} step="0.01" value={form.ticket_estimado} onChange={(event) => change('ticket_estimado', event.target.value)} placeholder="0,00" /></Field>
         <Field label="Valor negociado"><Input type="number" min={0} step="0.01" value={form.valor_negociado} onChange={(event) => change('valor_negociado', event.target.value)} placeholder="0,00" /></Field>
         <Field label="Receita prevista"><Input type="number" min={0} step="0.01" value={form.receita_prevista} onChange={(event) => change('receita_prevista', event.target.value)} placeholder="0,00" /></Field>
+        <Field label="Comissão (%)" hint="Comissão combinada na venda."><Input type="number" min={0} max={100} step="0.01" value={form.commission_percentage} onChange={(event) => change('commission_percentage', event.target.value)} placeholder="10" /></Field>
+        <Field label="Comissão fixa (R$)"><Input type="number" min={0} step="0.01" value={form.commission_amount} onChange={(event) => change('commission_amount', event.target.value)} placeholder="0,00" /></Field>
         <Field label="Próxima ação"><Input type="datetime-local" value={form.next_action_at} onChange={(event) => change('next_action_at', event.target.value)} /></Field>
         <Field label="Observações" className="span-2"><Textarea value={form.notes} onChange={(event) => change('notes', event.target.value)} placeholder="Contexto da oportunidade, critérios e combinados." /></Field>
       </div>
