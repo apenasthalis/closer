@@ -14,10 +14,6 @@ class CompanyController extends Controller
     {
         $query = Company::query()->withCount('users');
 
-        if (! $request->user()->isAdmin()) {
-            $query->whereIn('id', $request->user()->companies->pluck('id'));
-        }
-
         return response()->json([
             'data' => $query->orderBy('name')->get(),
         ]);

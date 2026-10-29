@@ -88,7 +88,7 @@ class LeadService
             /** @var Lead $locked */
             $locked = Lead::query()->lockForUpdate()->findOrFail($lead->getKey());
 
-            $allowed = array_keys($locked->getFillable());
+            $allowed = $locked->getFillable();
             $allowed = array_values(array_diff($allowed, [
                 'stage', 'loss_reason', 'disqualify_reason', 'position', 'last_stage_change_at',
             ]));
