@@ -75,6 +75,7 @@ export function OverviewPage() {
         <>
           <div className="kpi-row">
             <Stat label="Faturamento contratado" value={money(dashboard.revenue.contracted, true)} caption={`${num(dashboard.closed)} venda(s) no período`} icon="money" tone="green" />
+            <Stat label="Caixa recebido" value={money(dashboard.revenue.received, true)} caption="Apenas o que foi recebido" icon="payments" tone="blue" />
             <Stat label="Ticket médio" value={money(dashboard.ticket_medio, true)} caption="Receita contratada / vendas" icon="chart" tone="blue" />
             <Stat label="Comissão gerada" value={money(dashboard.revenue.commissions, true)} caption="Baseada apenas no caixa" icon="commissions" tone="purple" />
             <Stat label="Leads no período" value={num(dashboard.leads_created)} caption={`${num(dashboard.leads_total)} na base acessível`} icon="leads" tone="amber" />
@@ -139,11 +140,15 @@ export function OverviewPage() {
               ) : null}
             </Panel>
 
-            <Panel title="Financeiro do período" subtitle="Faturamento = boleto + caixa, mesmo com boleto pendente. Caixa = valor recebido. Comissão apenas sobre o caixa.">
+            <Panel title="Financeiro do período" subtitle="Faturamento = todas as movimentações, incluindo boletos pendentes. Caixa = apenas o que foi recebido.">
+              <div className="section-label">Faturamento</div>
               <div className="kv"><span>Faturamento previsto</span><b>{money(dashboard.revenue.forecast)}</b></div>
               <div className="kv"><span>Faturamento contratado</span><b>{money(dashboard.revenue.contracted)}</b></div>
+              <div className="kv"><span>Faturamento total (caixa + pendente)</span><b>{money(dashboard.revenue.received + dashboard.revenue.pending)}</b></div>
+              <div className="divider" />
+              <div className="section-label">Caixa</div>
               <div className="kv"><span>Caixa recebido</span><b className="text-brand">{money(dashboard.revenue.received)}</b></div>
-              <div className="kv"><span>Pendente</span><b>{money(dashboard.revenue.pending)}</b></div>
+              <div className="kv"><span>Pendente (inclui boletos)</span><b>{money(dashboard.revenue.pending)}</b></div>
               <div className="kv"><span>Vencido</span><b className="text-danger">{money(dashboard.revenue.overdue)}</b></div>
               <div className="kv"><span>Saldo devedor</span><b>{money(dashboard.revenue.debtor_balance)}</b></div>
               <div className="divider" />
