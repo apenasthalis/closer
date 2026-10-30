@@ -131,7 +131,7 @@ class DashboardService
         $byNiche = Niche::query()
             ->whereIn('id', $leads->pluck('niche_id')->filter()->unique()->values())
             ->get()
-            ->map(function (Niche $niche) use ($createdInPeriod, $closedInPeriod) {
+            ->map(function (Niche $niche) use ($createdInPeriod, $closedInPeriod, $payments) {
                 $nicheCreated = $createdInPeriod->where('niche_id', $niche->id);
                 $nicheClosed = $closedInPeriod->where('niche_id', $niche->id);
 
@@ -154,7 +154,7 @@ class DashboardService
 
         $ranking = $leads->whereNotNull('closer_id')
             ->groupBy('closer_id')
-            ->map(function (Collection $items, $closerId) use ($users, $calls, $closedInPeriod, $commissions, $createdInPeriod) {
+            ->map(function (Collection $items, $closerId) use ($users, $calls, $closedInPeriod, $commissions, $createdInPeriod, $payments) {
                 $user = $users->get((int) $closerId);
                 $userCalls = $calls->where('closer_id', (int) $closerId);
                 $completed = $userCalls->where('status', 'completed')->count();
