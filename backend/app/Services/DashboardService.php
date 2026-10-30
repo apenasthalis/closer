@@ -98,7 +98,7 @@ class DashboardService
         $noShowCalls = $calls->where('status', 'no_show');
         $attendanceBase = $completedCalls->count() + $noShowCalls->count();
 
-        $contracted = (float) $closedInPeriod->sum(fn (Lead $lead) => (float) ($lead->ticket_fechado ?? 0));
+        $contracted = (float) $closedInPeriod->sum(fn (Lead $lead) => (float) $payments->where('lead_id', $lead->getKey())->sum('amount'));
         $received = (float) $payments->where('status', 'paid')
             ->where('enters_cash', true)
             ->filter(fn (Payment $payment) => $this->between($payment->paid_at, $from, $to))
@@ -141,7 +141,7 @@ class DashboardService
                     'color' => $niche->color,
                     'leads' => $nicheCreated->count(),
                     'closed' => $nicheClosed->count(),
-                    'revenue' => (float) $nicheClosed->sum(fn (Lead $lead) => (float) ($lead->ticket_fechado ?? 0)),
+                    'revenue' => (float) $nicheClosed->sum(fn (Lead $lead) => (float) $payments->where('lead_id', $lead->getKey())->sum('amount')),
                     'conversion' => $nicheCreated->count() > 0
                         ? round($nicheClosed->count() / $nicheCreated->count() * 100, 1)
                         : 0.0,
@@ -174,9 +174,9 @@ class DashboardService
                     'attendance_rate' => ($completed + $noShow) > 0 ? round($completed / ($completed + $noShow) * 100, 1) : null,
                     'closed' => $userClosed->count(),
                     'conversion' => $userCreated->count() > 0 ? round($userClosed->count() / $userCreated->count() * 100, 1) : 0.0,
-                    'revenue' => (float) $userClosed->sum(fn (Lead $lead) => (float) ($lead->ticket_fechado ?? 0)),
+                    'revenue' => (float) $userClosed->sum(fn (Lead $lead) => (float) $payments->where('lead_id', $lead->getKey())->sum('amount')),
                     'average_ticket' => $userClosed->count() > 0
-                        ? round((float) $userClosed->sum(fn (Lead $lead) => (float) ($lead->ticket_fechado ?? 0)) / $userClosed->count(), 2)
+                        ? round((float) $userClosed->sum(fn (Lead $lead) => (float) $payments->where('lead_id', $lead->getKey())->sum('amount')) / $userClosed->count(), 2)
                         : 0.0,
                     'cycle_days' => $cycle->count() > 0 ? round($cycle->avg(), 1) : null,
                     'commission' => (float) $commissions->where('user_id', (int) $closerId)->sum(fn (Commission $commission) => (float) $commission->amount),
