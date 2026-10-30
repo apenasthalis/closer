@@ -387,11 +387,8 @@ export function LeadDetailPage() {
       </div>
 
       <div className="lead-kpis">
-        <div className="lead-kpi"><span>Ticket estimado</span><b>{money(lead.ticket_estimado)}</b></div>
-        <div className="lead-kpi"><span>Valor negociado</span><b>{money(lead.valor_negociado)}</b></div>
-        <div className="lead-kpi"><span>Receita prevista</span><b>{money(lead.receita_prevista)}</b></div>
-        <div className="lead-kpi"><span>Recebido</span><b className="text-brand">{money(paidTotal)}</b></div>
-        <div className="lead-kpi"><span>Saldo devedor</span><b className={Number(lead.saldo_devedor || 0) > 0 ? 'text-danger' : ''}>{money(lead.saldo_devedor)}</b></div>
+        <div className="lead-kpi"><span>Faturamento</span><b>{money(paidTotal + pendingTotal)}</b></div>
+        <div className="lead-kpi"><span>Caixa</span><b className="text-brand">{money(cashInTotal)}</b></div>
       </div>
 
       <Tabs
