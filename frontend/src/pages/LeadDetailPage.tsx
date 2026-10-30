@@ -596,12 +596,9 @@ export function LeadDetailPage() {
             </section>
             <section className="panel panel-padded">
               <h3>Resumo financeiro</h3>
-              <div className="kv"><span>Contratado em propostas</span><b>{money(proposalTotal)}</b></div>
-              <div className="kv"><span>Total recebido</span><b className="text-brand">{money(paidTotal)}</b></div>
-              <div className="kv"><span>Em aberto</span><b>{money(pendingTotal)}</b></div>
+              <div className="kv"><span>Faturamento</span><b>{money(paidTotal + pendingTotal)}</b></div>
+              <div className="kv"><span>Caixa</span><b className="text-brand">{money(cashInTotal)}</b></div>
               <div className="kv"><span>Saldo devedor</span><b className="text-danger">{money(lead.saldo_devedor)}</b></div>
-              <div className="kv"><span>Entrou no caixa</span><b>{money(cashInTotal)}</b></div>
-              <div className="kv"><span>Não entrou no caixa</span><b>{money(cashOutTotal)}</b></div>
               <div className="divider" />
               <div className="kv"><span>Comissão da venda</span><b>{lead.commission_percentage || lead.commission_amount ? `${lead.commission_percentage ? `${lead.commission_percentage}%` : ''}${lead.commission_percentage && lead.commission_amount ? ' + ' : ''}${lead.commission_amount ? money(lead.commission_amount) : ''}` : '—'}</b></div>
               {commissions.length ? commissions.map((commission) => (

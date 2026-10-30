@@ -88,7 +88,7 @@ class DashboardService
         foreach (Lead::STAGES as $stage) {
             $stageTotals[$stage] = [
                 'count' => $createdInPeriod->where('stage', $stage)->count(),
-                'value' => (float) $createdInPeriod->where('stage', $stage)->sum(fn (Lead $lead) => (float) ($lead->valor_negociado ?? $lead->ticket_estimado ?? 0)),
+                'value' => (float) $createdInPeriod->where('stage', $stage)->sum(fn (Lead $lead) => (float) $payments->where('lead_id', $lead->getKey())->sum('amount')),
             ];
         }
 
@@ -108,8 +108,7 @@ class DashboardService
             ->filter(fn (Payment $payment) => $payment->due_at->isPast())
             ->sum(fn (Payment $payment) => (float) $payment->amount);
 
-        $activeLeads = $leads->whereNotIn('stage', ['fechado', 'loss', 'mal_qualificado']);
-        $forecast = (float) $activeLeads->sum(fn (Lead $lead) => (float) ($lead->receita_prevista ?? $lead->ticket_estimado ?? 0));
+        $forecast = $pending;
 
         $cycleDays = $closedInPeriod->map(function (Lead $lead) {
             return $lead->created_at && $lead->last_stage_change_at
