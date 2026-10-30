@@ -61,10 +61,13 @@ export function LeadDetailPage() {
   const [installmentFirst, setInstallmentFirst] = useState('')
   const [installmentInterval, setInstallmentInterval] = useState('30')
   const [creatingInstallments, setCreatingInstallments] = useState(false)
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null)
+  const [paymentForm, setPaymentForm] = useState({ amount: '', due_at: '', status: 'pending', method: 'pix', notes: '', next_action: '', next_action_at: '' })
+  const [savingPayment, setSavingPayment] = useState(false)
   const [saleOpen, setSaleOpen] = useState(false)
   const [saleForm, setSaleForm] = useState({
     amount: '', source: 'pix', status: 'paid', due_at: today(),
-    commission_percentage: '', commission_amount: '', next_action: '', next_action_at: '', notes: '',
+    commission_percentage: '7', commission_amount: '', next_action: '', next_action_at: '', notes: '',
   })
   const [savingSale, setSavingSale] = useState(false)
   const [saleError, setSaleError] = useState('')
@@ -96,7 +99,7 @@ export function LeadDetailPage() {
     setMoveStage(lead.stage)
     setMoveReason('')
     setMoveTicket(lead.ticket_fechado ? String(lead.ticket_fechado) : lead.valor_negociado ? String(lead.valor_negociado) : '')
-    setMoveCommission(lead.commission_percentage !== null && lead.commission_percentage !== undefined ? String(lead.commission_percentage) : '')
+    setMoveCommission(lead.commission_percentage !== null && lead.commission_percentage !== undefined ? String(lead.commission_percentage) : '7')
     setMoveCommissionAmount(lead.commission_amount !== null && lead.commission_amount !== undefined ? String(lead.commission_amount) : '')
     setMoveOpen(true)
   }
@@ -225,6 +228,42 @@ export function LeadDetailPage() {
     }
   }
 
+  const openEditPayment = (payment: Payment) => {
+    setEditingPayment(payment)
+    setPaymentForm({
+      amount: String(payment.amount || ''),
+      due_at: payment.due_at ? String(payment.due_at).slice(0, 10) : today(),
+      status: payment.status || 'pending',
+      method: payment.method || 'pix',
+      notes: payment.notes || '',
+      next_action: payment.next_action || '',
+      next_action_at: payment.next_action_at ? String(payment.next_action_at).slice(0, 10) : '',
+    })
+  }
+
+  const savePayment = async () => {
+    if (!editingPayment) return
+    setSavingPayment(true)
+    try {
+      await api.put(`/payments/${editingPayment.id}`, {
+        amount: Number(paymentForm.amount),
+        due_at: paymentForm.due_at,
+        status: paymentForm.status,
+        method: paymentForm.method,
+        notes: paymentForm.notes || null,
+        next_action: paymentForm.next_action || null,
+        next_action_at: paymentForm.next_action_at || null,
+      })
+      notify('Pagamento atualizado.')
+      setEditingPayment(null)
+      reload()
+    } catch (requestError) {
+      notify(apiMessage(requestError), 'error')
+    } finally {
+      setSavingPayment(false)
+    }
+  }
+
   const openSale = () => {
     if (!lead) return
     setSaleForm({
@@ -232,7 +271,7 @@ export function LeadDetailPage() {
       source: 'pix',
       status: 'paid',
       due_at: today(),
-      commission_percentage: lead.commission_percentage !== null && lead.commission_percentage !== undefined ? String(lead.commission_percentage) : '',
+      commission_percentage: lead.commission_percentage !== null && lead.commission_percentage !== undefined ? String(lead.commission_percentage) : '7',
       commission_amount: lead.commission_amount !== null && lead.commission_amount !== undefined ? String(lead.commission_amount) : '',
       next_action: '',
       next_action_at: '',
@@ -594,7 +633,10 @@ export function LeadDetailPage() {
                         <td>{payment.enters_cash === false ? <Badge tone="neutral">Não entra</Badge> : <Badge tone="green">Entra</Badge>}</td>
                         <td className="cell-sub">{payment.next_action || '—'}</td>
                         <td className="text-right mono">{money(payment.amount)}</td>
-                        <td>{payment.status !== 'paid' && payment.status !== 'cancelled' ? <Button size="sm" onClick={() => markPaid(payment)}>Receber</Button> : null}</td>
+                        <td className="actions">
+                          <IconButton icon="edit" label="Editar pagamento" onClick={() => openEditPayment(payment)} />
+                          {payment.status !== 'paid' && payment.status !== 'cancelled' ? <Button size="sm" onClick={() => markPaid(payment)}>Receber</Button> : null}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -703,6 +745,26 @@ export function LeadDetailPage() {
               : 'não entra no caixa. O valor fica registrado como boleto e não soma no caixa recebido.'}
           </div>
         ) : null}
+      </Modal>
+
+      <Modal open={Boolean(editingPayment)} onClose={() => { if (!savingPayment) setEditingPayment(null) }} title="Editar pagamento" subtitle={editingPayment ? `#${editingPayment.installment_number} · ${editingPayment.kind}` : undefined} footer={<><Button onClick={() => setEditingPayment(null)} disabled={savingPayment}>Cancelar</Button><Button variant="primary" loading={savingPayment} onClick={savePayment}>Salvar</Button></>}>
+        <div className="form-grid">
+          <Field label="Valor" required><Input type="number" min={0.01} step="0.01" value={paymentForm.amount} onChange={(event) => setPaymentForm({ ...paymentForm, amount: event.target.value })} /></Field>
+          <Field label="Vencimento" required><Input type="date" value={paymentForm.due_at} onChange={(event) => setPaymentForm({ ...paymentForm, due_at: event.target.value })} /></Field>
+          <Field label="Status">
+            <Select value={paymentForm.status} onChange={(event) => setPaymentForm({ ...paymentForm, status: event.target.value })}>
+              {Object.entries(PAYMENT_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Fonte">
+            <Select value={paymentForm.method} onChange={(event) => setPaymentForm({ ...paymentForm, method: event.target.value })}>
+              {sources.length ? sources.map((source) => <option key={source.slug} value={source.slug}>{source.name}</option>) : Object.entries(PAYMENT_METHODS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Próxima ação" className="span-2"><Textarea rows={2} value={paymentForm.next_action} onChange={(event) => setPaymentForm({ ...paymentForm, next_action: event.target.value })} /></Field>
+          <Field label="Data da próxima ação"><Input type="date" value={paymentForm.next_action_at} onChange={(event) => setPaymentForm({ ...paymentForm, next_action_at: event.target.value })} /></Field>
+          <Field label="Observações"><Textarea rows={2} value={paymentForm.notes} onChange={(event) => setPaymentForm({ ...paymentForm, notes: event.target.value })} /></Field>
+        </div>
       </Modal>
 
       <ConfirmDialog open={Boolean(confirmDeleteAttachment)} title="Remover anexo" message="O arquivo será excluído permanentemente do armazenamento local. Esta ação não pode ser desfeita." confirmLabel="Remover" loading={deletingAttachment} onClose={() => setConfirmDeleteAttachment(null)} onConfirm={removeAttachment} />

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useApi, useLookups } from '@/lib/hooks'
-import type { Dashboard } from '@/lib/types'
+import type { Dashboard, Reminder } from '@/lib/types'
 import { STAGES } from '@/lib/constants'
 import {
   date, endOfMonth, money, num, pct, periodLabel, percentOf, startOfMonth, today,
@@ -33,6 +33,8 @@ export function OverviewPage() {
     company_id: companyId || undefined,
   })
   const dashboard = data?.data
+  const { data: reminderData } = useApi<{ data: Reminder[] }>('/reminders', { status: 'pendente', per_page: 5 })
+  const nearestReminders = (reminderData?.data || []).slice().sort((a, b) => String(a.due_at).localeCompare(String(b.due_at))).slice(0, 5)
 
   const stageRows = useMemo(() => {
     if (!dashboard) return []
@@ -74,7 +76,7 @@ export function OverviewPage() {
           <div className="kpi-row">
             <Stat label="Faturamento contratado" value={money(dashboard.revenue.contracted, true)} caption={`${num(dashboard.closed)} venda(s) no período`} icon="money" tone="green" />
             <Stat label="Ticket médio" value={money(dashboard.ticket_medio, true)} caption="Receita contratada / vendas" icon="chart" tone="blue" />
-            <Stat label="Comissão gerada" value={money(dashboard.revenue.commissions, true)} caption="Aprovações e regras no backend" icon="commissions" tone="purple" />
+            <Stat label="Comissão gerada" value={money(dashboard.revenue.commissions, true)} caption="Baseada apenas no caixa" icon="commissions" tone="purple" />
             <Stat label="Leads no período" value={num(dashboard.leads_created)} caption={`${num(dashboard.leads_total)} na base acessível`} icon="leads" tone="amber" />
             <Stat label="Taxa de conversão" value={pct(dashboard.conversion_rate)} caption="Fechamentos / leads criados" icon="target" tone="rose" />
           </div>
@@ -116,7 +118,7 @@ export function OverviewPage() {
           </div>
 
           <div className="grid-main-side mt-16">
-            <Panel title="Pipeline por etapa" subtitle="Distribuição atual dos leads na base acessível." action={<Link to="/pipeline" className="btn btn-sm btn-ghost">Abrir pipeline <Icon name="arrowRight" size={13} /></Link>}>
+            <Panel title="Pipeline por etapa" subtitle="Distribuição dos leads criados no período selecionado." action={<Link to="/pipeline" className="btn btn-sm btn-ghost">Abrir pipeline <Icon name="arrowRight" size={13} /></Link>}>
               {stageRows.map((stage) => (
                 <div className="bar-list-row" key={stage.value}>
                   <span className="name">{stage.label}</span>
@@ -137,10 +139,10 @@ export function OverviewPage() {
               ) : null}
             </Panel>
 
-            <Panel title="Financeiro do período" subtitle="Valores claramente separados por estágio do caixa.">
+            <Panel title="Financeiro do período" subtitle="Faturamento = boleto + caixa, mesmo com boleto pendente. Caixa = valor recebido. Comissão apenas sobre o caixa.">
               <div className="kv"><span>Faturamento previsto</span><b>{money(dashboard.revenue.forecast)}</b></div>
-              <div className="kv"><span>Receita contratada</span><b>{money(dashboard.revenue.contracted)}</b></div>
-              <div className="kv"><span>Recebido</span><b className="text-brand">{money(dashboard.revenue.received)}</b></div>
+              <div className="kv"><span>Faturamento contratado</span><b>{money(dashboard.revenue.contracted)}</b></div>
+              <div className="kv"><span>Caixa recebido</span><b className="text-brand">{money(dashboard.revenue.received)}</b></div>
               <div className="kv"><span>Pendente</span><b>{money(dashboard.revenue.pending)}</b></div>
               <div className="kv"><span>Vencido</span><b className="text-danger">{money(dashboard.revenue.overdue)}</b></div>
               <div className="kv"><span>Saldo devedor</span><b>{money(dashboard.revenue.debtor_balance)}</b></div>
@@ -150,6 +152,25 @@ export function OverviewPage() {
               <Link to="/dashboard" className="btn btn-soft btn-block mt-12">Ver dashboard completo <Icon name="arrowRight" size={13} /></Link>
             </Panel>
           </div>
+
+          <Panel className="mt-16" title="Lembretes mais próximos" subtitle="Pendentes ordenados por prazo." padded={false}>
+            {nearestReminders.length ? (
+              <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
+                <table className="table">
+                  <thead><tr><th>Lembrete</th><th>Lead</th><th>Prazo</th></tr></thead>
+                  <tbody>
+                    {nearestReminders.map((reminder) => (
+                      <tr key={reminder.id}>
+                        <td className="cell-main">{reminder.title}</td>
+                        <td>{reminder.lead ? <Link to={`/leads/${reminder.lead.id}`}>{reminder.lead.name}</Link> : '—'}</td>
+                        <td>{date(reminder.due_at, true)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <div className="empty" style={{ padding: '18px 10px' }}><Icon name="clock" size={20} /><p>Nenhum lembrete pendente.</p></div>}
+          </Panel>
 
           <Panel className="mt-16" title="Ranking de closers" subtitle="Receita, conversão e comissão gerada no período." padded={false}>
             <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>

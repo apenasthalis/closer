@@ -121,9 +121,9 @@ class CoreSeeder extends Seeder
             CommissionRule::query()->create([
                 'name' => 'Comissão padrão',
                 'scope' => 'global',
-                'percentage' => 10,
+                'percentage' => 7,
                 'fixed_amount' => null,
-                'basis' => 'contracted',
+                'basis' => 'received',
                 'active' => true,
                 'priority' => 0,
                 'created_by' => $admin->getKey(),

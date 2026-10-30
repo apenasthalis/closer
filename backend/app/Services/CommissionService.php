@@ -72,6 +72,7 @@ class CommissionService
             $received = (float) Payment::query()
                 ->where('lead_id', $lead->getKey())
                 ->where('status', 'paid')
+                ->where('enters_cash', true)
                 ->sum('amount');
 
             $saleAmount = (float) ($lead->ticket_fechado ?? 0);

@@ -88,6 +88,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::patch('/payments/{payment}/status', [PaymentController::class, 'updateStatus'])->name('payments.status');
+        Route::put('/payments/{payment}', [PaymentController::class, 'update'])->name('payments.update');
+        Route::patch('/payments/{payment}', [PaymentController::class, 'update'])->name('payments.update');
         Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
 
         Route::get('/payment-sources', [PaymentSourceController::class, 'index'])->name('payment_sources.index');

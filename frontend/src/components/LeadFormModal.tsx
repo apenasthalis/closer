@@ -38,7 +38,7 @@ function emptyForm(defaultStage = 'lead_agendado') {
     ticket_estimado: '',
     valor_negociado: '',
     receita_prevista: '',
-    commission_percentage: '',
+    commission_percentage: '7',
     commission_amount: '',
     company_id: '',
     meeting_at: '',
@@ -142,7 +142,6 @@ export function LeadFormModal({ open, onClose, lead, onSaved, defaultStage }: Le
       {error ? <div className="login-error" style={{ marginBottom: 13 }}>{error}</div> : null}
       <div className="form-grid">
         <Field label="Nome completo" required><Input value={form.name} onChange={(event) => change('name', event.target.value)} placeholder="Nome do contato" /></Field>
-        <Field label="Empresa"><Input value={form.company} onChange={(event) => change('company', event.target.value)} placeholder="Empresa" /></Field>
         <Field label="Telefone"><Input value={form.phone} onChange={(event) => change('phone', event.target.value)} placeholder="(62) 99999-0000" /></Field>
         <Field label="WhatsApp"><Input value={form.whatsapp} onChange={(event) => change('whatsapp', event.target.value)} placeholder="(62) 99999-0000" /></Field>
         <Field label="E-mail"><Input type="email" value={form.email} onChange={(event) => change('email', event.target.value)} placeholder="contato@empresa.com" /></Field>

@@ -87,8 +87,8 @@ class DashboardService
         $stageTotals = [];
         foreach (Lead::STAGES as $stage) {
             $stageTotals[$stage] = [
-                'count' => $leads->where('stage', $stage)->count(),
-                'value' => (float) $leads->where('stage', $stage)->sum(fn (Lead $lead) => (float) ($lead->valor_negociado ?? $lead->ticket_estimado ?? 0)),
+                'count' => $createdInPeriod->where('stage', $stage)->count(),
+                'value' => (float) $createdInPeriod->where('stage', $stage)->sum(fn (Lead $lead) => (float) ($lead->valor_negociado ?? $lead->ticket_estimado ?? 0)),
             ];
         }
 
@@ -100,6 +100,7 @@ class DashboardService
 
         $contracted = (float) $closedInPeriod->sum(fn (Lead $lead) => (float) ($lead->ticket_fechado ?? 0));
         $received = (float) $payments->where('status', 'paid')
+            ->where('enters_cash', true)
             ->filter(fn (Payment $payment) => $this->between($payment->paid_at, $from, $to))
             ->sum(fn (Payment $payment) => (float) $payment->amount);
         $pending = (float) $payments->where('status', 'pending')->sum(fn (Payment $payment) => (float) $payment->amount);

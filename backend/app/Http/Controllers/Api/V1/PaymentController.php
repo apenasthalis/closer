@@ -174,6 +174,71 @@ class PaymentController extends Controller
         return response()->json(['data' => $payment->fresh('lead:id,name'), 'message' => 'Pagamento atualizado.']);
     }
 
+    public function update(Request $request, Payment $payment): JsonResponse
+    {
+        $this->authorizeLead($request, $payment->lead_id);
+
+        $data = $request->validate([
+            'amount' => ['sometimes', 'required', 'numeric', 'gt:0', 'max:999999999'],
+            'due_at' => ['sometimes', 'required', 'date'],
+            'status' => ['sometimes', 'required', Rule::in(['pending', 'paid', 'overdue', 'cancelled'])],
+            'method' => ['nullable', 'string', Rule::exists('payment_sources', 'slug')->where('active', true)],
+            'notes' => ['nullable', 'string', 'max:2000'],
+            'next_action' => ['nullable', 'string', 'max:2000'],
+            'next_action_at' => ['nullable', 'date'],
+            'kind' => ['sometimes', Rule::in(['entry', 'installment', 'recurring', 'other'])],
+        ]);
+
+        $old = $payment->only(['amount', 'due_at', 'status', 'method', 'enters_cash', 'notes', 'next_action', 'next_action_at', 'kind']);
+
+        if (array_key_exists('amount', $data)) {
+            $payment->amount = $data['amount'];
+        }
+
+        if (array_key_exists('due_at', $data)) {
+            $payment->due_at = $data['due_at'];
+        }
+
+        if (array_key_exists('status', $data)) {
+            $payment->status = $data['status'];
+            if ($data['status'] === 'paid') {
+                $payment->paid_at = $payment->paid_at ?? now();
+            } else {
+                $payment->paid_at = null;
+            }
+        }
+
+        if (array_key_exists('method', $data)) {
+            $payment->method = $data['method'];
+            if ($data['method']) {
+                $source = PaymentSource::query()->where('slug', $data['method'])->first();
+                $payment->enters_cash = $source ? (bool) $source->enters_cash : $payment->enters_cash;
+            }
+        }
+
+        if (array_key_exists('notes', $data)) {
+            $payment->notes = $data['notes'];
+        }
+
+        if (array_key_exists('next_action', $data)) {
+            $payment->next_action = $data['next_action'];
+        }
+
+        if (array_key_exists('next_action_at', $data)) {
+            $payment->next_action_at = $data['next_action_at'];
+        }
+
+        if (array_key_exists('kind', $data)) {
+            $payment->kind = $data['kind'];
+        }
+
+        $payment->save();
+
+        $this->audit->record('payment.updated', $request->user(), $payment, $old, $payment->only(['amount', 'due_at', 'status', 'method', 'enters_cash', 'notes', 'next_action', 'next_action_at', 'kind']), [], $request);
+
+        return response()->json(['data' => $payment->fresh('lead:id,name'), 'message' => 'Pagamento atualizado.']);
+    }
+
     public function destroy(Request $request, Payment $payment): JsonResponse
     {
         abort_unless($request->user()->isAdmin(), 403);

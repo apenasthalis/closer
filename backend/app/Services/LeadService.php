@@ -76,6 +76,10 @@ class LeadService
                 'summary' => 'Lead criado no pipeline.',
             ]);
 
+            if ($stage === 'fup') {
+                $this->createFollowUpReminder($lead, $actor);
+            }
+
             $this->audit->record('lead.created', $actor, $lead, [], $lead->only($lead->getFillable()), [], $request);
 
             return $lead->fresh(['niche', 'closer', 'preSales']);
@@ -230,8 +234,42 @@ class LeadService
                 $this->reminders->syncForLead($locked);
             }
 
+            if ($toStage === 'fup') {
+                $this->createFollowUpReminder($locked, $actor);
+            }
+
             return $locked->fresh(['niche', 'closer', 'preSales']);
         });
+    }
+
+    private function createFollowUpReminder(Lead $lead, User $actor): void
+    {
+        $exists = Reminder::query()
+            ->where('lead_id', $lead->getKey())
+            ->where('rule_key', 'fup_call')
+            ->where('status', Reminder::STATUS_PENDING)
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
+        $dueAt = $lead->next_action_at ?? $lead->meeting_at;
+        $due = $dueAt ? \Illuminate\Support\Carbon::parse($dueAt) : now()->addDay()->setTime(9, 0);
+
+        Reminder::query()->create([
+            'lead_id' => $lead->getKey(),
+            'type' => 'follow_up',
+            'title' => 'Próxima call — '.$lead->name,
+            'detail' => 'Lead em Follow up. Confirmar a próxima call.',
+            'due_at' => $due,
+            'status' => Reminder::STATUS_PENDING,
+            'origin' => 'stage_change',
+            'rule_key' => 'fup_call',
+            'dedupe_key' => 'fup_call:'.$lead->getKey().':'.$due->toDateString(),
+            'responsible_id' => $lead->closer_id ?? $actor->getKey(),
+            'priority' => 0,
+        ]);
     }
 
     public function addInteraction(Lead $lead, User $actor, array $data, Request $request): LeadInteraction
