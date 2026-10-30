@@ -38,7 +38,7 @@ class LeadController extends Controller
 
         $query = Lead::query()
             ->visibleTo($request->user())
-            ->with(['niche:id,name,color', 'closer:id,name', 'preSales:id:name'])
+            ->with(['niche:id,name,color', 'closer:id,name', 'preSales:id:name', 'payments:id,lead_id,amount'])
             ->when($filters['q'] ?? null, function ($builder, $term) {
                 $like = '%'.mb_strtolower($term).'%';
                 $builder->where(function ($inner) use ($like) {
@@ -79,7 +79,7 @@ class LeadController extends Controller
 
         $query = Lead::query()
             ->visibleTo($request->user())
-            ->with(['niche:id,name,color', 'closer:id,name', 'preSales:id:name'])
+            ->with(['niche:id,name,color', 'closer:id,name', 'preSales:id:name', 'payments:id,lead_id,amount'])
             ->when($filters['from'] ?? null, fn ($builder, $from) => $builder->whereDate('created_at', '>=', $from))
             ->when($filters['to'] ?? null, fn ($builder, $to) => $builder->whereDate('created_at', '<=', $to))
             ->when($filters['niche_id'] ?? null, fn ($builder, $niche) => $builder->where('niche_id', $niche))
@@ -99,7 +99,7 @@ class LeadController extends Controller
             'label' => Lead::STAGE_LABELS[$stage],
             'leads' => $query->where('stage', $stage)->values(),
             'count' => $query->where('stage', $stage)->count(),
-            'value' => (float) $query->where('stage', $stage)->sum(fn (Lead $lead) => (float) ($lead->valor_negociado ?? $lead->ticket_estimado ?? 0)),
+            'value' => (float) $query->where('stage', $stage)->sum(fn (Lead $lead) => (float) $lead->payments->sum('amount')),
         ]);
 
         return response()->json([
