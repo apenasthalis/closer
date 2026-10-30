@@ -209,7 +209,7 @@ export function PipelinePage() {
                         </div>
                         <div className="niche truncate">{lead.company || lead.niche?.name || 'Sem empresa'}{lead.niche?.name && lead.company ? ` · ${lead.niche.name}` : ''}</div>
                         <div className="foot">
-                          <span className="value">{money(lead.valor_negociado || lead.ticket_estimado, true)}</span>
+                          <span className="value">{money((lead.payments || []).reduce((sum, payment) => sum + Number(payment.amount || 0), 0), true)}</span>
                           <span className="truncate">{lead.closer?.name?.split(' ')[0] || 'Sem closer'}</span>
                         </div>
                         {lead.next_action_at ? <div className="kcard-meta"><Icon name="clock" size={10} />{relative(lead.next_action_at)}</div> : null}
